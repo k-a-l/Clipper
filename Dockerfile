@@ -1,7 +1,7 @@
 # Clipper in a container (CPU encoding with libx264).
 # For NVIDIA NVENC, build FROM an nvidia/cuda runtime image with an NVENC-enabled ffmpeg and run
 # with `--gpus all`; the app auto-detects the encoder.
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
