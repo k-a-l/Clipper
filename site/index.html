@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipper: live streams to Shorts &amp; Reels</title>
+<meta name="description" content="Open-source tool that turns live streams and videos into vertical Shorts and Reels: highlight detection, captions, AI hooks, scheduled posting. macOS, Windows, Linux.">
+<meta name="color-scheme" content="dark light">
+<meta property="og:title" content="Clipper: live streams to Shorts & Reels">
+<meta property="og:description" content="Finds the best moments in live streams and videos, cuts vertical clips with captions and hooks, and posts them on a safe schedule.">
+<meta property="og:image" content="https://k-a-l.github.io/Clipper/shots/dashboard.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c83f0'/%3E%3Cpath d='M12 9l12 7-12 7z' fill='%23161722'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:oklch(0.165 0.008 270);--panel:oklch(0.2 0.01 270);--raised:oklch(0.235 0.012 270);
+  --line:oklch(0.3 0.012 270);--ink:oklch(0.95 0.004 270);--ink-2:oklch(0.8 0.01 270);--ink-3:oklch(0.68 0.014 270);
+  --accent:oklch(0.74 0.12 270);--accent-wash:oklch(0.74 0.12 270 / 0.14);--on-accent:oklch(0.17 0.03 270);
+  --live:oklch(0.69 0.19 27);--ok:oklch(0.77 0.14 158);
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:10px;--max:1120px;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:oklch(0.985 0.003 270);--panel:oklch(1 0 0);--raised:oklch(0.96 0.005 270);--line:oklch(0.89 0.008 270);
+  --ink:oklch(0.2 0.01 270);--ink-2:oklch(0.38 0.012 270);--ink-3:oklch(0.5 0.014 270);
+  --accent:oklch(0.52 0.16 270);--accent-wash:oklch(0.52 0.16 270 / 0.1);--on-accent:oklch(0.99 0 0);
+}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+header.top{position:sticky;top:0;z-index:5;background:color-mix(in oklch,var(--bg) 85%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:16px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--ink);text-decoration:none}
+.brand i{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--accent)}
+.brand i::after{content:"";border-left:11px solid var(--on-accent);border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px}
+nav{margin-left:auto;display:flex;gap:20px;align-items:center}
+nav a{color:var(--ink-2);text-decoration:none;font-size:15px}
+nav a:hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:var(--r);font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--ink);background:var(--panel);font-size:15px}
+.btn.primary{background:var(--accent);border-color:transparent;color:var(--on-accent)}
+.btn:hover{filter:brightness(1.08)}
+.hero{padding:72px 0 40px;text-align:center}
+.pill{display:inline-flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:var(--panel)}
+.pill b{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 0 4px color-mix(in oklch,var(--live) 25%,transparent)}
+h1{font-size:clamp(34px,6vw,60px);line-height:1.05;letter-spacing:-0.03em;margin:20px auto 16px;max-width:15ch;text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:clamp(17px,2.2vw,20px);color:var(--ink-2);max-width:60ch;margin:0 auto 28px;text-wrap:pretty}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.flow{margin:36px auto 0;max-width:860px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:14px;color:var(--ink-2)}
+.flow span{padding:6px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+.flow span.arrow{background:none;border:0;padding:6px 0;color:var(--ink-3)}
+.shot{margin:48px auto 0;border-radius:14px;border:1px solid var(--line);overflow:hidden;box-shadow:0 30px 80px oklch(0 0 0 / 0.35);background:var(--panel)}
+.shot img{display:block;width:100%;height:auto}
+section{padding:72px 0;border-top:1px solid var(--line)}
+h2{font-size:clamp(26px,3.6vw,36px);letter-spacing:-0.02em;margin:0 0 10px}
+.sub{color:var(--ink-2);margin:0 0 32px;max-width:65ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.card h3{margin:0 0 6px;font-size:17px}
+.card p{margin:0;color:var(--ink-2);font-size:15px}
+.ico{font-size:22px;margin-bottom:10px;display:block}
+.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+@media (max-width:760px){.gallery{grid-template-columns:1fr}}
+figure{margin:0}
+figure .shot{margin:0}
+figcaption{color:var(--ink-3);font-size:14px;margin-top:10px}
+.tall .shot{max-height:620px;display:flex;justify-content:center;background:var(--bg)}
+.tall img{width:auto;max-width:100%;height:620px;object-fit:cover;object-position:top}
+.tabs{display:flex;gap:6px;margin-bottom:-1px;flex-wrap:wrap}
+.tabs button{font:inherit;font-size:14px;padding:8px 14px;border:1px solid var(--line);border-bottom:0;border-radius:8px 8px 0 0;background:var(--raised);color:var(--ink-2);cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);font-weight:600}
+.term{background:var(--panel);border:1px solid var(--line);border-radius:0 var(--r) var(--r) var(--r);padding:16px 18px;position:relative}
+.term pre{margin:0;font:14px/1.6 var(--mono);white-space:pre-wrap;word-break:break-all;color:var(--ink);padding-right:70px}
+.term .copy{position:absolute;top:12px;right:12px;font:13px var(--sans);padding:6px 10px;border-radius:6px;border:1px solid var(--line);background:var(--raised);color:var(--ink-2);cursor:pointer}
+.term .note{margin:10px 0 0;color:var(--ink-3);font-size:14px}
+.steps{counter-reset:s;display:grid;gap:12px;margin-top:28px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.steps li{list-style:none;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 16px 16px 52px;position:relative;color:var(--ink-2);font-size:15px}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:16px;top:15px;width:24px;height:24px;border-radius:50%;background:var(--accent-wash);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:13px}
+.steps strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.9em;background:var(--raised);padding:1px 6px;border-radius:5px}
+.creds{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.creds a{display:block;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.creds a span{display:block;color:var(--ink-3);font-size:14px}
+.creds a:hover{border-color:var(--accent)}
+.warn{margin-top:24px;padding:14px 16px;border-radius:var(--r);background:var(--accent-wash);color:var(--ink-2);font-size:15px}
+.demo{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.demo a{display:flex;gap:16px;align-items:center;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.demo a:hover{border-color:var(--accent)}
+.demo .logo{flex:none;width:48px;height:48px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px}
+.demo .yt{background:#e62117}.demo .fb{background:#1877f2}
+.demo b{display:block;font-size:17px}.demo span{color:var(--ink-3);font-size:14px}
+footer{border-top:1px solid var(--line);padding:32px 0;color:var(--ink-3);font-size:14px}
+footer .wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+@media (max-width:640px){nav a.hide-sm{display:none}.hero{padding-top:48px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><i aria-hidden="true"></i>Clipper</a>
+    <nav>
+      <a class="hide-sm" href="#features">Features</a>
+      <a class="hide-sm" href="#screens">Screenshots</a>
+      <a class="hide-sm" href="#demo">Demo</a>
+      <a href="#install">Install</a>
+      <a class="btn" href="https://github.com/k-a-l/Clipper">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero wrap">
+    <span class="pill"><b aria-hidden="true"></b> Free &amp; open source · macOS · Windows · Linux</span>
+    <h1>Live streams to <em>Shorts &amp; Reels</em>, automatically.</h1>
+    <p class="lede">Clipper watches Twitch and YouTube streams or any video, finds the moments people react to, and cuts vertical clips with captions, a hook and a thumbnail. It can post them to YouTube Shorts and Facebook Reels on a safe schedule, all from a dashboard on your own computer.</p>
+    <div class="cta">
+      <a class="btn primary" href="#install">Install in one command</a>
+      <a class="btn" href="https://github.com/k-a-l/Clipper">View on GitHub</a>
+    </div>
+    <div class="flow" aria-label="How it works">
+      <span>Live stream or video</span><span class="arrow">→</span><span>Chat &amp; audio spikes</span><span class="arrow">→</span>
+      <span>9:16 clip + captions</span><span class="arrow">→</span><span>Hook &amp; thumbnail</span><span class="arrow">→</span><span>Scheduled post</span>
+    </div>
+    <div class="shot"><img src="shots/dashboard.webp" width="1600" height="1000" alt="The Clipper dashboard: live streams being recorded, a gallery of vertical clips, and the publishing panel"></div>
+  </div>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Everything from stream to post</h2>
+      <p class="sub">Runs on your machine. Your recordings, logins and AI stay local; it only talks to the platforms you connect.</p>
+      <div class="grid">
+        <div class="card"><span class="ico" aria-hidden="true">🔴</span><h3>Records at full quality</h3><p>Twitch and YouTube lives at the stream's highest quality (1080p60, 1440p, 4K), lossless, with automatic reconnects.</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">⚡</span><h3>Finds the highlights</h3><p>Chat-speed spikes and sudden loud moments mark what's worth clipping. No manual scrubbing.</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">🎬</span><h3>Ended streams &amp; videos</h3><p>Paste any link or drop a file. For long videos it downloads only the audio, finds the highlights, then fetches just those minutes.</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">📱</span><h3>Five vertical layouts</h3><p>Center, Full screen, Whole frame, Streamer on top or below, with webcam auto-detect. Rotate or randomise them per stream.</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">💬</span><h3>Captions, hooks, thumbnails</h3><p>Word-by-word captions (Whisper), a hook line and an auto-picked thumbnail. Output in 2K (1440×2560).</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">🧠</span><h3>Optional local AI</h3><p>With Ollama: specific hooks, titles and a spoken intro (Kokoro voice), with checks that reject made-up facts.</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">📡</span><h3>Many channels &amp; Pages</h3><p>Connect several YouTube channels and Facebook Pages at once. Post each clip to one, some or all of them, each with its own daily limit.</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">📅</span><h3>Safe, scheduled posting</h3><p>Daily limits and spacing per account, "post now", scheduling and auto-post. Logins are stored encrypted and refresh by themselves.</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">🎲</span><h3>Every clip a bit different</h3><p>Random length (30–90 s) and random layouts, so a channel's uploads don't look like one template.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screens">
+    <div class="wrap">
+      <h2>The dashboard</h2>
+      <p class="sub">Open <code>http://127.0.0.1:8787</code>. Add streams, watch them record, review clips, and post or schedule them without the terminal.</p>
+      <div class="gallery">
+        <figure><div class="shot"><img src="shots/clips.webp" width="1600" height="1000" loading="lazy" alt="Clips gallery with vertical thumbnails, hooks and status filters"></div><figcaption>Clips: every clip with its thumbnail, hook and posting status.</figcaption></figure>
+        <figure><div class="shot"><img src="shots/clip.webp" width="1600" height="1000" loading="lazy" alt="A single clip opened: video player, transcript and posting options"></div><figcaption>One clip: play it, read the transcript, post, schedule, re-cut or restyle.</figcaption></figure>
+        <figure class="tall"><div class="shot"><img src="shots/style.webp" width="760" height="2240" loading="lazy" alt="Clip style editor with layouts, captions, voice and clip length options"></div><figcaption>Clip style: layouts, captions, voice, quality and random length.</figcaption></figure>
+        <figure class="tall"><div class="shot"><img src="shots/phone.webp" width="900" height="1600" loading="lazy" alt="A finished vertical clip with captions and hook"></div><figcaption>A finished 9:16 clip, ready for Shorts and Reels.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="demo">
+    <div class="wrap">
+      <h2>See it in action</h2>
+      <p class="sub">These accounts are run with Clipper: every Short and Reel there was found, cut, captioned and uploaded by it, to a YouTube channel and a Facebook Page at the same time.</p>
+      <div class="demo">
+        <a href="https://www.youtube.com/@HypeLoop-n1" rel="noopener"><span class="logo yt" aria-hidden="true">▶</span><div><b>YouTube Shorts</b><span>youtube.com/@HypeLoop-n1</span></div></a>
+        <a href="https://www.facebook.com/HypeLoop.n1/reels/" rel="noopener"><span class="logo fb" aria-hidden="true">f</span><div><b>Facebook Reels</b><span>facebook.com/HypeLoop.n1/reels</span></div></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>Install in one command</h2>
+      <p class="sub">The installer sets up FFmpeg, Node.js and <a href="https://docs.astral.sh/uv/">uv</a> (which brings its own Python), then the <code>clipper</code> command. Each step is skipped if it's already done.</p>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="mac">macOS / Linux</button>
+        <button role="tab" aria-selected="false" data-tab="win">Windows</button>
+        <button role="tab" aria-selected="false" data-tab="docker">Docker</button>
+        <button role="tab" aria-selected="false" data-tab="pip">pipx / uv</button>
+      </div>
+      <div class="term" data-panel="mac"><pre>curl -fsSL https://raw.githubusercontent.com/k-a-l/Clipper/main/scripts/install.sh | sh</pre><button class="copy">Copy</button><p class="note">Uses Homebrew on macOS, or apt / dnf / pacman / zypper on Linux.</p></div>
+      <div class="term" data-panel="win" hidden><pre>powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/k-a-l/Clipper/main/scripts/install.ps1 | iex"</pre><button class="copy">Copy</button><p class="note">Windows 10/11, in PowerShell. Uses winget.</p></div>
+      <div class="term" data-panel="docker" hidden><pre>docker run -d --name clipper --restart unless-stopped \
+  -v clipper-data:/data -p 127.0.0.1:8787:8787 ghcr.io/k-a-l/clipper:latest</pre><button class="copy">Copy</button><p class="note">For servers and NAS boxes. Put your <code>.env</code> in the <code>/data</code> volume.</p></div>
+      <div class="term" data-panel="pip" hidden><pre>uv tool install --python 3.12 git+https://github.com/k-a-l/Clipper
+# or: pipx install git+https://github.com/k-a-l/Clipper</pre><button class="copy">Copy</button><p class="note">Install FFmpeg and Node.js yourself first.</p></div>
+
+      <ol class="steps">
+        <li><strong>Start it:</strong> <code>clipper ui --open</code> opens the dashboard.</li>
+        <li><strong>Add a stream</strong> (<code>twitch.tv/name</code> or a YouTube live link), or paste video links.</li>
+        <li><strong>Review clips</strong> as they appear. Re-cut, restyle, or keep them local.</li>
+        <li><strong>Connect accounts</strong> to post: see the credentials guide below.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="credentials">
+    <div class="wrap">
+      <h2>Connect your accounts</h2>
+      <p class="sub">Clipper uses <em>your own</em> free developer apps, so quotas and logins belong to you. Step-by-step guide: <a href="https://github.com/k-a-l/Clipper/blob/main/docs/CREDENTIALS.md">docs/CREDENTIALS.md</a>.</p>
+      <div class="creds">
+        <a href="https://github.com/k-a-l/Clipper/blob/main/docs/CREDENTIALS.md#1-youtube-upload-shorts">YouTube Shorts<span>Google Cloud OAuth client · ~10 min</span></a>
+        <a href="https://github.com/k-a-l/Clipper/blob/main/docs/CREDENTIALS.md#2-facebook-reels-post-to-a-page">Facebook Reels<span>Meta app + your Page · ~15 min</span></a>
+        <a href="https://github.com/k-a-l/Clipper/blob/main/docs/CREDENTIALS.md#3-twitch-app-optional-discover-panel">Twitch Discover<span>Optional Twitch app · ~3 min</span></a>
+        <a href="https://github.com/k-a-l/Clipper/blob/main/docs/OPTIONAL_AI.md">Local AI<span>Ollama + voices · optional</span></a>
+      </div>
+      <p class="warn"><strong>Only post what you have the rights to.</strong> Clipper only queues clips from sources you mark as yours or permitted. Everything else stays on your computer. Many streamers run official clipping programs.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Clipper · MIT license</span>
+    <span><a href="https://github.com/k-a-l/Clipper">Source</a> · <a href="https://github.com/k-a-l/Clipper/issues">Issues</a> · <a href="https://github.com/k-a-l/Clipper/blob/main/THIRD_PARTY_COMPONENTS.md">Third-party components</a></span>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll(".term").forEach(p => p.hidden = p.dataset.panel !== b.dataset.tab);
+}));
+document.querySelectorAll(".term .copy").forEach(btn => btn.addEventListener("click", async () => {
+  const text = btn.parentElement.querySelector("pre").textContent;
+  try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; }
+  catch { btn.textContent = "Select & copy"; }
+  setTimeout(() => btn.textContent = "Copy", 1600);
+}));
+</script>
+</body>
+</html>

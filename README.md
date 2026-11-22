@@ -15,7 +15,9 @@ dashboard.
 ```
 
 [![CI](https://github.com/k-a-l/clipper/actions/workflows/ci.yml/badge.svg)](https://github.com/k-a-l/clipper/actions/workflows/ci.yml)
-· MIT license · macOS, Windows, Linux · Python 3.12+
+· MIT license · macOS, Windows, Linux · Python 3.12+ · **[Website](https://k-a-l.github.io/Clipper)**
+
+![The Clipper dashboard](site/shots/dashboard.webp)
 
 ## Features
 
@@ -30,9 +32,16 @@ dashboard.
 - **Captions** (faster-whisper, karaoke style), hook line, smart thumbnail, 2K output.
 - **AI story** (optional, local via Ollama): specific hook, title, description and a spoken intro
   (Kokoro / Chatterbox TTS), with a guard against made-up facts.
-- **Publishing** to YouTube and Facebook with per-platform daily limits, spacing, scheduling, and
-  several channels / Pages.
+- **Many channels and Pages**: connect several YouTube channels and Facebook Pages and post each clip to
+  one, some or all of them, each with its own daily limit, spacing, scheduling and auto-post.
 - **Dashboard**: add streams, see what's recording, review / re-cut / restyle clips, post or schedule.
+
+## See it in action
+
+Clips made and uploaded by Clipper, posted to a YouTube channel and a Facebook Page at the same time:
+
+- **YouTube Shorts:** <https://www.youtube.com/@HypeLoop-n1>
+- **Facebook Reels:** <https://www.facebook.com/HypeLoop.n1/reels/>
 
 ## Install
 

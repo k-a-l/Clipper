@@ -1634,7 +1634,7 @@ function renderDrawerFooter(c, fresh) {
   const acts = [];
   if (c.jobs.some(j => j.status === "failed" || j.status === "expired"))
     acts.push(h("button", { class: "btn", type: "button", onclick: e => withBusy(e.currentTarget, () => act(c, "retry", "Back in the automatic queue.")) }, "Retry failed posts"));
-  if (c.video) acts.push(h("button", { class: "btn", type: "button", onclick: () => revealClip(c) }, "Show in Finder"),
+  if (c.video) acts.push(h("button", { class: "btn", type: "button", onclick: () => revealClip(c) }, "Show in folder"),
     h("button", { class: "btn ghost", type: "button", onclick: () => copyPath(c) }, "Copy file path"));
   if (c.video) acts.push(armed(h("button", { class: "btn", type: "button", style: "margin-left:auto" }), c.folder ? "Delete clip folder" : "Delete files", "Confirm delete",
     () => act(c, "delete", c.folder ? "Clip folder deleted." : "Clip files deleted.")));
