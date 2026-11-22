@@ -25,7 +25,7 @@ classifiers = [
 ]
 dependencies = [
     # configuration
-    "pydantic>=2.7,<3",
+    "pydantic>=2.14.4,<3",
     "pydantic-settings>=2.3,<3",
     # stream capture / chat
     "streamlink>=8.0,<9",
