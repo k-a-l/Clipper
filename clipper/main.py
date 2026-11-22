@@ -175,6 +175,11 @@ async def cmd_queue(s: Settings) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Windows terminals often use a legacy code page that has no "→" or emoji: print what fits
+    # instead of crashing with UnicodeEncodeError.
+    for stream in (sys.stdout, sys.stderr):
+        with contextlib.suppress(AttributeError, ValueError):
+            stream.reconfigure(errors="replace")  # type: ignore[union-attr]
     parser = argparse.ArgumentParser(prog="clipper", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     try:

@@ -61,8 +61,8 @@ project, so the daily upload quota is yours alone.
 8. Put them in `.env`:
 
    ```ini
-   YOUTUBE_CLIENT_ID=1234567890-abc...apps.googleusercontent.com
-   YOUTUBE_CLIENT_SECRET=GOCSPX-...
+   YOUTUBE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   YOUTUBE_CLIENT_SECRET=your-client-secret
    YOUTUBE_PRIVACY_STATUS=private   # switch to public once you like the results
    ```
 9. Connect the channel: in the dashboard **Connections → Add or reconnect a channel**, or in a
@@ -95,9 +95,9 @@ Reels are posted to a **Facebook Page** (not a personal profile) through the Gra
 5. Put them in `.env`:
 
    ```ini
-   FACEBOOK_APP_ID=123456789012345
-   FACEBOOK_APP_SECRET=abcdef0123456789abcdef0123456789
-   FACEBOOK_PAGE_ID=100000000000000
+   FACEBOOK_APP_ID=your-app-id
+   FACEBOOK_APP_SECRET=your-app-secret
+   FACEBOOK_PAGE_ID=your-page-id
    FACEBOOK_VIDEO_STATE=DRAFT       # PUBLISHED once you're happy
    ```
 6. Get a user token with Page permissions in the **Graph API Explorer**
