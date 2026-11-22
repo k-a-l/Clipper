@@ -56,7 +56,7 @@ dependencies = [
 [project.optional-dependencies]
 # Action detection for titles (racing, police chase, fight…): ~1 GB, uses the GPU when available.
 actions = ["torch>=2.5", "torchvision>=0.20", "open-clip-torch>=2.24"]
-dev = ["pytest>=8", "ruff>=0.6", "pyflakes>=3"]
+dev = ["pytest>=8", "ruff>=0.6", "pyflakes>=4.1.0"]
 
 [project.scripts]
 clipper = "clipper.main:main"
