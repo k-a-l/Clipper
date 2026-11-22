@@ -1,0 +1,84 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clipper"
+version = "0.1.0"
+description = "Turn live streams and videos into vertical Shorts/Reels: highlight detection, captions, AI hooks, scheduled posting."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "Clipper contributors" }]
+keywords = ["youtube-shorts", "reels", "twitch", "clips", "ffmpeg", "streamlink", "highlights", "whisper"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video :: Conversion",
+]
+dependencies = [
+    # configuration
+    "pydantic>=2.7,<3",
+    "pydantic-settings>=2.3,<3",
+    # stream capture / chat
+    "streamlink>=8.0,<9",
+    "websockets>=13.0,<18",
+    # media
+    "typed-ffmpeg>=4.6,<5",
+    "faster-whisper>=1.2,<2",
+    "pysubs2>=1.9,<2",
+    "pillow>=11.0,<14",
+    "opencv-python-headless>=4.12,<5",
+    "numpy>=1.26",
+    # dashboard
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.30,<1",
+    # publishing
+    "httpx>=0.27,<1",
+    "tenacity>=9.0,<10",
+    "google-api-python-client>=2.130,<3",
+    "google-auth>=2.29,<3",
+    "google-auth-oauthlib>=1.2,<2",
+    "google-auth-httplib2>=0.2,<1",
+    "yt-dlp[default]>=2026.10.26",
+    "bgutil-ytdlp-pot-provider==2.0.2",
+    "cryptography>=42",
+    "tzdata>=2024.1",
+]
+
+[project.optional-dependencies]
+# Action detection for titles (racing, police chase, fight…): ~1 GB, uses the GPU when available.
+actions = ["torch>=2.5", "torchvision>=0.20", "open-clip-torch>=2.24"]
+dev = ["pytest>=8", "ruff>=0.6", "pyflakes>=3"]
+
+[project.scripts]
+clipper = "clipper.main:main"
+
+[project.urls]
+Documentation = "https://github.com/k-a-l/clipper#readme"
+Issues = "https://github.com/k-a-l/clipper/issues"
+Source = "https://github.com/k-a-l/clipper"
+
+[tool.hatch.build.targets.wheel]
+packages = ["clipper"]
+
+[tool.hatch.build.targets.sdist]
+include = ["clipper", "tests", "docs", "scripts", "README.md", "LICENSE", "THIRD_PARTY_COMPONENTS.md", ".env.example"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# Correctness only (undefined names, unused imports, syntax): style is not enforced.
+select = ["F", "E9"]

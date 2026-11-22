@@ -1,0 +1,2046 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Clipper</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23161a26'/%3E%3Crect x='9' y='6' width='14' height='20' rx='2.5' fill='none' stroke='%23a7a6f2' stroke-width='2.4'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ef6b5b'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:oklch(0.165 0.008 270);
+  --panel:oklch(0.2 0.01 270);
+  --raised:oklch(0.235 0.012 270);
+  --sunken:oklch(0.145 0.008 270);
+  --line:oklch(0.3 0.012 270);
+  --line-strong:oklch(0.38 0.014 270);
+  --ink:oklch(0.95 0.004 270);
+  --ink-2:oklch(0.8 0.01 270);
+  --ink-3:oklch(0.68 0.014 270);
+  --accent:oklch(0.74 0.12 270);
+  --accent-strong:oklch(0.68 0.14 270);
+  --accent-wash:oklch(0.74 0.12 270 / 0.14);
+  --on-accent:oklch(0.17 0.03 270);
+  --live:oklch(0.69 0.19 27);
+  --live-wash:oklch(0.69 0.19 27 / 0.16);
+  --ok:oklch(0.77 0.14 158);
+  --ok-wash:oklch(0.77 0.14 158 / 0.14);
+  --warn:oklch(0.83 0.13 82);
+  --warn-wash:oklch(0.83 0.13 82 / 0.14);
+  --err:oklch(0.72 0.17 22);
+  --err-wash:oklch(0.72 0.17 22 / 0.15);
+  --focus:oklch(0.8 0.13 270);
+  --shadow:0 10px 30px oklch(0 0 0 / 0.35);
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  --r:8px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --z-sticky:10;--z-drawer:30;--z-toast:40;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:oklch(0.975 0.004 270);
+    --panel:oklch(1 0 0);
+    --raised:oklch(0.955 0.006 270);
+    --sunken:oklch(0.94 0.006 270);
+    --line:oklch(0.88 0.008 270);
+    --line-strong:oklch(0.8 0.01 270);
+    --ink:oklch(0.22 0.015 270);
+    --ink-2:oklch(0.38 0.015 270);
+    --ink-3:oklch(0.48 0.015 270);
+    --accent:oklch(0.5 0.15 270);
+    --accent-strong:oklch(0.45 0.16 270);
+    --accent-wash:oklch(0.5 0.15 270 / 0.1);
+    --on-accent:oklch(0.99 0 0);
+    --live:oklch(0.55 0.2 27);
+    --live-wash:oklch(0.55 0.2 27 / 0.1);
+    --ok:oklch(0.5 0.13 158);
+    --ok-wash:oklch(0.5 0.13 158 / 0.1);
+    --warn:oklch(0.55 0.12 70);
+    --warn-wash:oklch(0.7 0.13 80 / 0.16);
+    --err:oklch(0.53 0.19 25);
+    --err-wash:oklch(0.53 0.19 25 / 0.1);
+    --focus:oklch(0.5 0.15 270);
+    --shadow:0 10px 30px oklch(0.2 0.02 270 / 0.15);
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--bg)}
+body{margin:0;font:14px/1.45 var(--sans);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-3)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h1,h2,h3{margin:0;font-weight:600;text-wrap:balance}
+h2{font-size:15px}
+h3{font-size:13px}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:var(--z-sticky);display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:10px 20px;background:color-mix(in oklch,var(--bg) 88%,transparent);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:650;font-size:15px;letter-spacing:-0.01em}
+.brand svg{flex:none}
+.stat{display:flex;align-items:center;gap:7px;color:var(--ink-2);white-space:nowrap}
+.stat b{color:var(--ink);font-weight:600}
+.spacer{flex:1}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+.dot.live{background:var(--live);box-shadow:0 0 0 0 var(--live);animation:pulse 2s var(--ease) infinite}
+.dot.ok{background:var(--ok)}
+.dot.warn{background:var(--warn)}
+.dot.err{background:var(--err)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 oklch(0.69 0.19 27 / .55)}70%{box-shadow:0 0 0 7px oklch(0.69 0.19 27 / 0)}100%{box-shadow:0 0 0 0 oklch(0.69 0.19 27 / 0)}}
+.conn{display:none;align-items:center;gap:8px;padding:4px 10px;border-radius:999px;background:var(--err-wash);color:var(--err);font-weight:600}
+.conn.show{display:flex}
+
+/* ---------- buttons & inputs ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;padding:0 12px;border-radius:7px;
+  border:1px solid var(--line-strong);background:var(--raised);color:var(--ink);font-weight:550;cursor:pointer;
+  transition:background .15s var(--ease),border-color .15s var(--ease),transform .1s var(--ease);white-space:nowrap}
+.btn:hover{border-color:var(--ink-3)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+.btn.danger{color:var(--err)}
+.btn.danger.armed{background:var(--err);border-color:var(--err);color:var(--on-accent)}
+.btn.warn.armed{background:var(--warn);border-color:var(--warn);color:oklch(0.2 0.03 80)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--raised);color:var(--ink)}
+.btn.sm{height:26px;padding:0 9px;font-size:12.5px;border-radius:6px}
+.btn.busy{position:relative;color:transparent}
+.btn.busy::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid currentColor;
+  border-color:var(--ink-2) transparent var(--ink-2) transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+label.field{display:grid;gap:5px;font-size:12.5px;color:var(--ink-2);font-weight:550}
+.input,textarea.input{width:100%;min-height:34px;padding:7px 10px;border-radius:7px;border:1px solid var(--line-strong);
+  background:var(--sunken);color:var(--ink);transition:border-color .15s var(--ease)}
+.input::placeholder{color:var(--ink-3)}
+.input:hover{border-color:var(--ink-3)}
+.input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+.input[aria-invalid=true]{border-color:var(--err)}
+textarea.input{min-height:84px;resize:vertical;font-family:var(--mono);font-size:12.5px;line-height:1.5}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--ink-2);cursor:pointer}
+.check input{margin:2px 0 0;accent-color:var(--accent);width:15px;height:15px;flex:none}
+.hint{font-size:12px;color:var(--ink-3);min-height:16px}
+.hint.ok{color:var(--ok)}
+.hint.err{color:var(--err)}
+details.more summary{cursor:pointer;color:var(--ink-2);font-size:12.5px;font-weight:550;list-style:none;display:inline-flex;align-items:center;gap:6px}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .15s var(--ease)}
+details.more[open] summary::before{transform:rotate(45deg)}
+details.more > div{display:grid;gap:10px;margin-top:10px}
+
+/* switch */
+.switch{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--ink-2)}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.switch .track{width:30px;height:18px;border-radius:999px;background:var(--line-strong);position:relative;transition:background .15s var(--ease);flex:none}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--ink);transition:transform .18s var(--ease)}
+.switch input:checked + .track{background:var(--ok)}
+.switch input:checked + .track::after{transform:translateX(12px);background:oklch(0.99 0 0)}
+.switch input:focus-visible + .track{outline:2px solid var(--focus);outline-offset:2px}
+
+/* ---------- layout ---------- */
+.layout{display:grid;grid-template-columns:minmax(330px,380px) minmax(0,1fr);gap:20px;padding:20px;max-width:1680px;margin:0 auto}
+.side{display:grid;gap:20px;align-content:start}
+.main{display:grid;gap:20px;align-content:start;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.panel > header{display:flex;align-items:center;gap:10px;padding:14px 16px 0}
+.panel > header .count{color:var(--ink-3);font-weight:500}
+.panel .body{padding:14px 16px 16px;display:grid;gap:12px}
+@media (max-width: 980px){.layout{grid-template-columns:1fr;padding:14px}}
+
+/* sources */
+.sources{display:grid;gap:2px;margin:0 -8px}
+.src{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 8px;border-radius:8px}
+.src:hover{background:var(--raised)}
+.src .name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src .sub{grid-column:2/4;display:flex;gap:6px 12px;flex-wrap:wrap;font-size:12px;color:var(--ink-3)}
+.src .sub a{color:var(--ink-3);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.src .sub a:hover{color:var(--ink);text-decoration:underline}
+.src .actions{grid-column:2/4;display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:2px}
+.state{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600}
+.state.recording{color:var(--live)}
+.state.offline,.state.checking{color:var(--ink-3)}
+.state.blocked{color:var(--warn)}
+.tag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:5px;font-size:11.5px;font-weight:600;
+  background:var(--raised);color:var(--ink-2);border:1px solid var(--line);white-space:nowrap}
+.tag.ok{background:var(--ok-wash);color:var(--ok);border-color:transparent}
+.tag.warn{background:var(--warn-wash);color:var(--warn);border-color:transparent}
+.tag.err{background:var(--err-wash);color:var(--err);border-color:transparent}
+.tag.live{background:var(--live-wash);color:var(--live);border-color:transparent}
+.tag.accent{background:var(--accent-wash);color:var(--accent);border-color:transparent}
+a.tag{text-decoration:none}
+a.tag:hover{text-decoration:underline}
+.empty{display:grid;gap:6px;padding:18px;border:1px dashed var(--line-strong);border-radius:10px;color:var(--ink-3);font-size:13px}
+.empty strong{color:var(--ink-2);font-weight:600}
+
+/* jobs */
+.jobs{display:grid;gap:10px}
+.job{display:grid;gap:6px;padding:10px 12px;border-radius:8px;background:var(--sunken);border:1px solid var(--line)}
+.job{grid-template-columns:minmax(0,1fr)}
+.job .title{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.bar{height:4px;border-radius:999px;background:var(--line);overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--accent);border-radius:inherit;transition:width .4s var(--ease)}
+.bar.indeterminate > i{width:35%;animation:slide 1.3s var(--ease) infinite}
+.bar.ok > i{background:var(--ok)}
+.bar.err > i{background:var(--err)}
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(290%)}}
+
+/* publishing */
+.pubgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.plat{display:grid;gap:9px;padding:12px 14px;border-radius:10px;background:var(--sunken);border:1px solid var(--line)}
+.plat .head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.plat .name{font-weight:650;display:flex;align-items:center;gap:8px}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--ink-2)}
+.kv b{color:var(--ink);font-weight:600}
+.meter{height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.meter > i{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .4s var(--ease)}
+.meter.full > i{background:var(--warn)}
+.notice{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12.5px}
+.notice.warn{background:var(--warn-wash);color:var(--ink)}
+.notice.err{background:var(--err-wash);color:var(--ink)}
+.notice.info{background:var(--accent-wash);color:var(--ink)}
+.notice code{font-family:var(--mono);font-size:12px;background:var(--sunken);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+
+/* clips */
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{height:28px;padding:0 10px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--ink-2);font-weight:550;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.tab:hover{background:var(--raised)}
+.tab[aria-pressed=true]{background:var(--raised);border-color:var(--line-strong);color:var(--ink)}
+.tab .n{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
+.clip{display:grid;gap:8px;text-align:left;padding:0;border:0;background:none;cursor:pointer;color:inherit;border-radius:10px}
+.clip .frame{position:relative;aspect-ratio:9/16;border-radius:10px;overflow:hidden;background:var(--sunken);border:1px solid var(--line);
+  transition:border-color .15s var(--ease),transform .2s var(--ease)}
+.clip:hover .frame{border-color:var(--ink-3);transform:translateY(-2px)}
+.clip .frame img{width:100%;height:100%;object-fit:cover;display:block}
+.clip .frame .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-3);font-size:12px;padding:12px;text-align:center}
+.clip .frame .dur{position:absolute;right:6px;bottom:6px;padding:1px 6px;border-radius:4px;background:oklch(0 0 0 / .65);color:oklch(1 0 0);font:600 11px var(--mono)}
+.clip .hook{font-weight:600;font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
+.clip .meta{font-size:12px;color:var(--ink-3);display:flex;gap:6px;flex-wrap:wrap}
+.clip .chips{display:flex;gap:5px;flex-wrap:wrap}
+.clip .frame{animation:fadein .25s var(--ease) both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* logs */
+.logbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.logs{height:280px;overflow:auto;margin:0;padding:10px 12px;background:var(--sunken);border:1px solid var(--line);border-radius:8px;
+  font:12px/1.55 var(--mono);color:var(--ink-2)}
+.logs .ln{display:grid;grid-template-columns:62px 44px 118px 1fr;gap:10px;white-space:pre-wrap;word-break:break-word}
+.logs .ln .t{color:var(--ink-3)}
+.logs .ln .lv{font-weight:700;color:var(--ink-3)}
+.logs .ln.WARNING .lv{color:var(--warn)}
+.logs .ln.ERROR .lv{color:var(--err)}
+.logs .ln.ERROR .m{color:var(--ink)}
+.logs .ln .lg{color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logs .ln.hi .m{color:var(--ink)}
+@media (max-width: 640px){.logs .ln{grid-template-columns:56px 1fr}.logs .ln .lv,.logs .ln .lg{display:none}}
+
+/* drawer */
+dialog.drawer{position:fixed;inset:0 0 0 auto;margin:0;height:100dvh;max-height:100dvh;width:min(520px,100vw);max-width:100vw;
+  padding:0;border:0;border-left:1px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:var(--shadow);z-index:var(--z-drawer)}
+dialog.drawer[open]{animation:drawer .22s var(--ease)}
+@keyframes drawer{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+dialog.drawer::backdrop{background:oklch(0 0 0 / .45)}
+.drawer .wrap{display:grid;grid-template-rows:auto 1fr auto;height:100%}
+.drawer header{display:flex;align-items:flex-start;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.drawer header h2{font-size:16px;flex:1}
+.drawer .content{overflow:auto;padding:16px 18px;display:grid;gap:16px;align-content:start}
+.drawer video{width:min(100%,300px);aspect-ratio:9/16;border-radius:10px;background:#000;justify-self:center}
+.drawer footer{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.dl{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:13px}
+.dl dt{color:var(--ink-3)}
+.dl dd{margin:0;overflow-wrap:anywhere}
+.transcript{font-size:13px;color:var(--ink-2);line-height:1.55;max-width:65ch}
+.jobrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--line)}
+.jobrow:last-child{border-bottom:0}
+
+/* let sidebar content wrap instead of widening its grid column */
+.side,.main,.panel,.panel .body,.panel form,.stylebox,.stylebox .grp,details.more,details.more > div,.src,.src .editor{min-width:0}
+fieldset{min-inline-size:0}
+label.field,.grid2 > *,.side form > div > *,.stylebox > *,.inline-row > *{min-width:0}
+textarea.input{max-width:100%}
+.panel .body,.side form > div,.stylebox,.stylebox .grp,details.more > div,.side .jobs,.sources{grid-template-columns:minmax(0,1fr)}
+/* style editor */
+.stylebox{display:grid;gap:12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--sunken)}
+.stylebox .grp{display:grid;gap:6px}
+.stylebox .lbl{font-size:12.5px;color:var(--ink-2);font-weight:550}
+.stylebox .note{font-size:12px;color:var(--ink-3)}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:7px;overflow:hidden;flex-wrap:wrap}
+.seg button{height:28px;padding:0 10px;border:0;background:transparent;color:var(--ink-2);font-weight:550;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--accent-wash);color:var(--accent)}
+.seg button:hover{background:var(--raised)}
+.chipset{display:flex;flex-wrap:wrap;gap:6px}
+.chipbtn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line-strong);
+  background:transparent;color:var(--ink-2);font-weight:550;cursor:pointer;font-size:12.5px}
+.chipbtn[aria-pressed=true]{background:var(--accent-wash);border-color:var(--accent);color:var(--ink)}
+.chipbtn .ix{font-family:var(--mono);font-size:11px;color:var(--accent)}
+.lay-ico{width:12px;height:20px;border:1.5px solid currentColor;border-radius:2px;position:relative;flex:none}
+.lay-ico i{position:absolute;left:1px;right:1px;background:currentColor;opacity:.55;border-radius:1px}
+.inline-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.inline-row .input{width:auto;flex:1 1 90px;min-width:0}
+select.input{appearance:auto;padding:5px 8px}
+.preview{display:grid;gap:6px;justify-items:start}
+.preview img{width:162px;aspect-ratio:9/16;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.src .editor{grid-column:1/4;margin-top:6px}
+.sched{display:grid;gap:6px}
+.sched-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 10px;border-radius:8px;background:var(--sunken);border:1px solid var(--line);font-size:12.5px}
+.sched-row .t{font-family:var(--mono);font-size:12px;color:var(--ink)}
+.sched-row .hk{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.platpost{display:grid;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.platpost:last-child{border-bottom:0}
+.platpost .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.platpost .top .what{font-size:12.5px;color:var(--ink-3);flex:1;min-width:160px}
+input[type=datetime-local].input{min-height:30px;padding:3px 8px;font-family:var(--mono);font-size:12.5px}
+.rerender{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--accent)}
+
+/* discover */
+.disc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.pick{display:grid;gap:7px;align-content:start;padding:0 0 10px;border-radius:10px;background:var(--sunken);border:1px solid var(--line);overflow:hidden}
+.pick .th{position:relative;aspect-ratio:16/9;background:var(--raised)}
+.pick .th img{width:100%;height:100%;object-fit:cover;display:block}
+.pick .th .badge{position:absolute;left:8px;top:8px;background:var(--accent);color:var(--on-accent);box-shadow:0 2px 8px oklch(0 0 0 / .4)}
+.pick .th .metric{position:absolute;right:8px;bottom:8px;padding:2px 7px;border-radius:5px;background:oklch(0 0 0 / .7);color:oklch(1 0 0);font:600 11.5px var(--mono)}
+.pick .tt{padding:0 10px;font-weight:600;font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
+.pick .mt{padding:0 10px;font-size:12px;color:var(--ink-3);display:flex;gap:6px;flex-wrap:wrap}
+.pick .ac{padding:0 10px;display:flex;gap:6px;flex-wrap:wrap}
+.conn-item{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--sunken)}
+.conn-item .head{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.conn-item .head b{font-weight:650}
+.acct{display:grid;gap:6px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);min-width:0}
+.acct-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.acct-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pagepick{display:grid;gap:8px;padding:10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel)}
+.err-text{color:var(--err)}
+.path{font-size:12px;color:var(--ink-2);word-break:break-all}
+.drives{display:grid;gap:6px}
+.drive{display:grid;gap:5px;text-align:left;padding:9px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink);cursor:pointer;font:inherit}
+.drive[aria-checked=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:var(--accent-wash)}
+.drive:disabled{opacity:.55;cursor:not-allowed}
+.drive .dn{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.platpost.multi{border-style:dashed}
+.conn-item ol{margin:0;padding-left:18px;font-size:12.5px;color:var(--ink-2);display:grid;gap:4px}
+.conn-item a{color:var(--accent)}
+.limits-form{display:grid;gap:8px;padding-top:6px;border-top:1px solid var(--line)}
+.limits-form .grid2 .input{min-height:30px}
+
+/* toasts */
+.toasts{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:var(--z-toast);max-width:min(420px,calc(100vw - 32px))}
+.toast{padding:10px 14px;border-radius:9px;background:var(--raised);border:1px solid var(--line-strong);box-shadow:var(--shadow);font-size:13px;
+  animation:toast .2s var(--ease)}
+.toast.err{border-color:var(--err);}
+.toast.ok{border-color:var(--ok)}
+@keyframes toast{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+
+/* skeleton */
+.skel{background:linear-gradient(90deg,var(--raised),var(--line),var(--raised));background-size:200% 100%;animation:sk 1.4s linear infinite;border-radius:8px}
+@keyframes sk{from{background-position:200% 0}to{background-position:-200% 0}}
+
+/* webcam picker */
+.cp{display:grid;gap:8px;container-type:inline-size;min-width:0}
+.cp-main{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+@container (min-width:440px){.cp-main{grid-template-columns:minmax(0,1fr) 108px;align-items:start}}
+.cp-stage{position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;border:1px solid var(--line-strong);
+  background:var(--bg);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:12.5% 22.222%;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}
+.cp-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
+.cp-bg:not([src]){display:none}
+.cp-stage.loading::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,oklch(1 0 0 / .08),transparent);
+  background-size:50% 100%;background-repeat:no-repeat;animation:cpscan 1.1s var(--ease) infinite}
+@keyframes cpscan{from{background-position:-50% 0}to{background-position:150% 0}}
+.cp-box{position:absolute;outline:2px solid var(--accent);box-shadow:0 0 0 100vmax oklch(0 0 0 / .52);cursor:move;border-radius:2px}
+.cp-box:focus-visible{outline:3px solid var(--focus)}
+.cp-box[hidden]{display:none}
+.cp-h{position:absolute;width:12px;height:12px;background:var(--panel);border:2px solid var(--accent);border-radius:3px;transform:translate(-50%,-50%)}
+.cp-h::after{content:"";position:absolute;inset:-9px}
+.cp-h.nw{left:0;top:0;cursor:nwse-resize}.cp-h.n{left:50%;top:0;cursor:ns-resize}.cp-h.ne{left:100%;top:0;cursor:nesw-resize}
+.cp-h.e{left:100%;top:50%;cursor:ew-resize}.cp-h.se{left:100%;top:100%;cursor:nwse-resize}.cp-h.s{left:50%;top:100%;cursor:ns-resize}
+.cp-h.sw{left:0;top:100%;cursor:nesw-resize}.cp-h.w{left:0;top:50%;cursor:ew-resize}
+.cp-tag{position:absolute;left:4px;top:4px;font:600 10.5px/1.5 var(--mono);background:var(--accent);color:var(--on-accent);padding:0 5px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.cp-keep{position:absolute;border:1px dashed oklch(1 0 0 / .75);pointer-events:none}
+.cp-face{position:absolute;border:1.5px dashed var(--ok);border-radius:50%;pointer-events:none}
+.cp-empty{position:absolute;inset:0;display:grid;place-content:center;gap:4px;text-align:center;padding:12px;color:var(--ink-2);font-size:12.5px;pointer-events:none}
+.cp-empty b{color:var(--ink);font-weight:600}
+.cp-side{display:grid;gap:4px;justify-items:center}
+.cp-out{width:108px;height:192px;border-radius:8px;border:1px solid var(--line);background:var(--bg)}
+.cp-side span{font-size:11.5px;color:var(--ink-3)}
+.cp-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.cp-strip button{flex:none;width:60px;aspect-ratio:16/9;padding:0;border:2px solid transparent;border-radius:5px;overflow:hidden;background:var(--raised);cursor:pointer}
+.cp-strip button[aria-pressed=true]{border-color:var(--accent)}
+.cp-strip img{width:100%;height:100%;object-fit:cover;display:block}
+.cp-corners{display:inline-grid;grid-template-columns:1fr 1fr}
+.cp-corners button:nth-child(2){border-right:0}
+.cp-corners button:nth-child(-n+2){border-bottom:1px solid var(--line)}
+@container (min-width:440px){.cp-corners{display:inline-flex}.cp-corners button:nth-child(2){border-right:1px solid var(--line)}.cp-corners button:nth-child(-n+2){border-bottom:0}}
+.cp-status{font-size:12px;color:var(--ink-3);min-height:1.4em}
+.cp-status.ok{color:var(--ok)}.cp-status.warn{color:var(--warn)}
+.cp-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.cp-nums label{display:grid;gap:2px;font-size:11.5px;color:var(--ink-3)}
+dialog.cp-dialog{width:min(1100px,94vw);max-width:94vw;max-height:94dvh;overflow:auto;border:1px solid var(--line-strong);border-radius:12px;
+  background:var(--panel);color:var(--ink);padding:16px;box-shadow:var(--shadow)}
+dialog.cp-dialog::backdrop{background:oklch(0 0 0 / .55)}
+dialog.cp-dialog .cp-main{grid-template-columns:minmax(0,1fr) 150px}
+dialog.cp-dialog .cp-out{width:150px;height:267px}
+dialog.cp-dialog .head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .dot.live{box-shadow:none}
+}
+.vod-drop{display:grid;gap:4px;padding:14px;border:1px dashed var(--line-strong);border-radius:8px;cursor:pointer}
+.vod-drop:hover,.vod-drop.over{border-color:var(--accent);background:var(--accent-wash)}
+.vod-drop:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect x="9" y="5" width="14" height="22" rx="3" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="16" cy="16" r="3.2" fill="var(--live)"/></svg>
+    Clipper
+  </div>
+  <div class="stat" id="st-daemon"><span class="dot ok"></span><span>Running <b id="st-uptime">–</b></span></div>
+  <div class="stat" id="st-sources"><span class="dot"></span><span><b>–</b></span></div>
+  <div class="stat"><span>Render queue <b id="st-queue">–</b></span></div>
+  <div class="stat" id="st-antibot" title="YouTube anti-bot tokens (bgutil helper on 127.0.0.1:4416): downloads look like a real player"></div>
+  <div class="spacer"></div>
+  <div class="conn" id="conn" role="status"><span class="dot err"></span>Dashboard can't reach Clipper. Retrying…</div>
+  <button class="btn primary" id="update-btn" type="button" hidden>Updated: restart Clipper</button>
+  <button class="btn" id="pause-all-btn" type="button" hidden></button>
+  <button class="btn" id="hold-btn" type="button" hidden></button>
+</header>
+
+<div class="layout">
+  <aside class="side">
+    <!-- Watch streams -->
+    <section class="panel" aria-labelledby="h-watch">
+      <header><h2 id="h-watch">Live streams</h2><span class="count" id="src-count"></span></header>
+      <div class="body">
+        <form id="add-src" novalidate>
+          <div style="display:grid;gap:10px">
+            <label class="field">Stream to watch
+              <input class="input" id="src-input" name="input" autocomplete="off" spellcheck="false"
+                     placeholder="twitch.tv/name, YouTube live link, or @handle" required>
+            </label>
+            <div class="hint" id="src-hint" aria-live="polite"></div>
+            <details class="more">
+              <summary>Name, topic and detection</summary>
+              <div>
+                <div class="grid2">
+                  <label class="field">Display name<input class="input" name="display_name" placeholder="Shown in captions"></label>
+                  <label class="field">Topic<input class="input" name="category" placeholder="e.g. Valorant, Space"></label>
+                </div>
+                <fieldset style="border:0;margin:0;padding:0;display:grid;gap:6px">
+                  <legend class="muted" style="font-size:12.5px;font-weight:550;margin-bottom:4px">Detect highlights from</legend>
+                  <label class="check"><input type="checkbox" name="sig_chat" checked><span>Chat spikes <span class="muted">(needs chat enabled)</span></span></label>
+                  <label class="check"><input type="checkbox" name="sig_audio" checked><span>Loud moments in the audio</span></label>
+                </fieldset>
+              </div>
+            </details>
+            <details class="more">
+              <summary>Clip style, length and posting</summary>
+              <div id="add-src-style"></div>
+            </details>
+            <label class="check"><input type="checkbox" name="publish"><span>I own this stream or have permission to repost it. <span class="muted">Without this, clips stay on this computer.</span></span></label>
+            <div class="row"><button class="btn primary" type="submit" id="add-src-btn">Watch stream</button></div>
+          </div>
+        </form>
+        <div id="sources" class="sources" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- Clip videos -->
+    <section class="panel" aria-labelledby="h-vod">
+      <header><h2 id="h-vod">Clip videos</h2></header>
+      <div class="body">
+        <form id="add-vod" novalidate>
+          <div style="display:grid;gap:10px">
+            <label class="field">Video links or files <span class="muted" style="font-weight:400">one per line: YouTube, Twitch VODs, most video sites, or a file path on this computer</span>
+              <textarea class="input" name="urls" id="vod-urls" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…&#10;/Users/you/Movies/my-recording.mp4"></textarea>
+            </label>
+            <div class="vod-drop" id="vod-drop" tabindex="0" role="button" aria-describedby="vod-files-list">
+              <input type="file" id="vod-files" accept="video/*,.mkv,.ts,.flv" multiple hidden>
+              <span><strong>Upload your own videos</strong> <span class="muted">drop files here or click to choose (recordings, gameplay, anything not live)</span></span>
+              <span id="vod-files-list" class="muted mono"></span>
+            </div>
+            <div class="grid2">
+              <label class="field">Clips per video<input class="input mono" name="clips" type="number" min="1" max="20" value="3"></label>
+              <label class="field">Topic<input class="input" name="category" placeholder="e.g. Space"></label>
+            </div>
+            <details class="more">
+              <summary>Clip style, length and posting</summary>
+              <div id="vod-style"></div>
+            </details>
+            <label class="check"><input type="checkbox" name="publish"><span>I own these videos or have permission to repost them. <span class="muted">Without this, clips stay on this computer.</span></span></label>
+            <div class="hint" id="vod-hint" aria-live="polite"></div>
+            <div class="row"><button class="btn primary" type="submit" id="add-vod-btn">Clip videos</button></div>
+          </div>
+        </form>
+        <div id="jobs" class="jobs" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-sto" id="storage">
+      <header><h2 id="h-sto">Saved clips</h2></header>
+      <div class="body" id="sto-body"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-conn" id="connections">
+      <header><h2 id="h-conn">Connections</h2></header>
+      <div class="body" id="conn-body"></div>
+    </section>
+  </aside>
+
+  <main class="main">
+    <section class="panel" aria-labelledby="h-pub">
+      <header><h2 id="h-pub">Publishing</h2><span class="count" id="pub-sub"></span></header>
+      <div class="body">
+        <div id="pub-notices" style="display:grid;gap:8px"></div>
+        <div class="pubgrid" id="pub"></div>
+        <div id="sched-wrap" hidden><h3 style="margin:4px 0 8px">Scheduled posts</h3><div class="sched" id="sched"></div></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-disc" id="discover-panel">
+      <header style="flex-wrap:wrap"><h2 id="h-disc">Discover</h2><span class="count">popular streams and videos worth clipping</span>
+        <div class="spacer"></div>
+        <div class="tabs" role="group" aria-label="Discovery source" id="disc-tabs"></div>
+      </header>
+      <div class="body">
+        <div class="inline-row" id="disc-bar"></div>
+        <div id="disc-note"></div>
+        <div class="disc-grid" id="disc"></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-clips">
+      <header style="flex-wrap:wrap"><h2 id="h-clips">Clips</h2>
+        <div class="spacer"></div>
+        <div class="tabs" role="group" aria-label="Filter clips" id="tabs"></div>
+      </header>
+      <div class="body">
+        <div class="clips" id="clips"></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-logs">
+      <header><h2 id="h-logs">Activity</h2>
+        <div class="spacer"></div>
+        <div class="logbar">
+          <label class="switch"><input type="checkbox" id="log-important" checked><span class="track"></span>Highlights &amp; problems only</label>
+          <input class="input" id="log-q" placeholder="Filter…" style="width:150px;min-height:28px;padding:3px 8px">
+          <button class="btn sm" type="button" id="log-pause" aria-pressed="false">Pause</button>
+        </div>
+      </header>
+      <div class="body"><pre class="logs" id="logs" tabindex="0" aria-label="Activity log"></pre></div>
+    </section>
+  </main>
+</div>
+
+<dialog class="drawer" id="drawer" aria-labelledby="dr-title">
+  <div class="wrap">
+    <header><h2 id="dr-title">Clip</h2><button class="btn ghost sm" type="button" id="dr-close">Close</button></header>
+    <div class="content" id="dr-content"></div>
+    <footer id="dr-actions"></footer>
+  </div>
+</dialog>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const TOKEN = "__CLIPPER_TOKEN__";
+const $ = (s, r = document) => r.querySelector(s);
+const state = { data: null, filter: "all", openClip: null, logPaused: false, failures: 0 };
+
+/* ---------- tiny DOM helper (always textContent: no HTML injection) ---------- */
+function h(tag, props = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "dataset") Object.assign(el.dataset, v);
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "text") el.textContent = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  return el;
+}
+
+/* ---------- formatting ---------- */
+const now = () => (state.data ? state.data.now : Date.now() / 1000);
+function ago(ts) {
+  if (!ts) return "never";
+  const d = Math.max(0, now() - ts);
+  if (d < 60) return `${Math.round(d)}s ago`;
+  if (d < 3600) return `${Math.round(d / 60)} min ago`;
+  if (d < 86400) return `${(d / 3600).toFixed(d < 36000 ? 1 : 0)} h ago`;
+  return `${Math.round(d / 86400)} d ago`;
+}
+function until(ts) {
+  const d = Math.max(0, ts - now());
+  if (d < 60) return "under a minute";
+  if (d < 3600) return `${Math.round(d / 60)} min`;
+  return `${Math.floor(d / 3600)} h ${Math.round((d % 3600) / 60)} min`;
+}
+const clock = ts => new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function when(ts) {
+  const d = new Date(ts * 1000), today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  const tomorrow = new Date(today.getTime() + 86400000).toDateString() === d.toDateString();
+  return `${sameDay ? "today" : tomorrow ? "tomorrow" : d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })} ${clock(ts)}`;
+}
+function localInputValue(ts) { const d = new Date(ts * 1000); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
+function dur(s) { if (!s) return ""; s = Math.round(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function uptime(start) {
+  const d = Math.max(0, now() - start);
+  const hh = Math.floor(d / 3600), mm = Math.floor((d % 3600) / 60);
+  return hh ? `${hh}h ${mm}m` : `${mm}m`;
+}
+const PLAT = { youtube: "YouTube", facebook: "Facebook", twitch: "Twitch" };
+const PLAT_SHORT = { youtube: "YT", facebook: "FB" };
+/* posting accounts: "youtube", "facebook", "youtube:<channel id>", "facebook:<page id>" */
+const platOf = key => (key || "").split(":")[0];
+const acctOf = key => (state.data?.accounts || []).find(a => a.key === key);
+function acctLabel(key) { const a = acctOf(key); return a ? a.label : (PLAT[platOf(key)] || key); }
+function acctShort(key) {
+  const a = acctOf(key), plat = platOf(key), short = PLAT_SHORT[plat] || plat;
+  const same = (state.data?.accounts || []).filter(x => x.platform === plat).length;
+  return a && a.name && same > 1 ? `${short} · ${a.name}` : short;
+}
+function fmtBytes(n) { if (!n && n !== 0) return "–"; const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0; while (n >= 1000 && i < 4) { n /= 1000; i++; } return `${n.toFixed(n < 10 && i ? 1 : 0)} ${u[i]}`; }
+
+/* ---------- API ---------- */
+async function api(method, path, body) {
+  const res = await fetch(path, {
+    method, headers: { "Content-Type": "application/json", "X-Clipper-Token": TOKEN },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let data = null;
+  try { data = await res.json(); } catch { /* empty */ }
+  if (res.status === 404 && data && data.detail === "Not Found")
+    throw new Error("This feature isn't in the Clipper that's running. Click “Updated: restart Clipper” at the top (or restart it).");
+  if (!res.ok) throw new Error((data && (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join("; ") : (data.detail || data.error))) || `Request failed (${res.status})`);
+  return data;
+}
+function toast(msg, kind = "") {
+  const el = h("div", { class: `toast ${kind}`, text: msg });
+  $("#toasts").append(el);
+  setTimeout(() => el.remove(), kind === "err" ? 7000 : 3800);
+}
+async function withBusy(btn, fn) {
+  btn.disabled = true; btn.classList.add("busy");
+  try { return await fn(); } finally { btn.disabled = false; btn.classList.remove("busy"); }
+}
+/* Two-step confirmation for consequential actions: first click arms, second click acts. */
+function armed(btn, label, armedLabel, fn, cls = "danger") {
+  btn.textContent = label;
+  btn.classList.add(cls);
+  let timer = null;
+  btn.addEventListener("click", async () => {
+    if (!btn.classList.contains("armed")) {
+      btn.classList.add("armed"); btn.textContent = armedLabel;
+      timer = setTimeout(() => { btn.classList.remove("armed"); btn.textContent = label; }, 5000);
+      return;
+    }
+    clearTimeout(timer); btn.classList.remove("armed"); btn.textContent = label;
+    await withBusy(btn, fn);
+  });
+  return btn;
+}
+
+/* ---------- clip style editor (shared by streams, videos and single clips) ---------- */
+let OPTIONS = { facecam_presets: {}, layouts: ["center", "full", "fit", "cam_top", "cam_bottom"] };
+const LAYOUTS = {
+  center: { name: "Center", hint: "Blurred background, gameplay in the middle", bars: [[38, 24]] },
+  full: { name: "Full screen", hint: "Fills the whole portrait frame", bars: [[0, 100]] },
+  fit: { name: "Whole frame", hint: "Entire 16:9 picture, blurred background", bars: [[40, 20]] },
+  cam_top: { name: "Streamer on top", hint: "Webcam above, gameplay below", bars: [[0, 42], [44, 56]] },
+  cam_bottom: { name: "Streamer below", hint: "Gameplay above, webcam below", bars: [[0, 56], [58, 42]] },
+};
+const PRESET_NAMES = { "top-left": "Top left", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-right": "Bottom right",
+  "top-left-large": "Top left (large)", "top-right-large": "Top right (large)", "bottom-left-large": "Bottom left (large)", "bottom-right-large": "Bottom right (large)" };
+const LENGTHS = [15, 20, 30, 35, 45, 60, 90, 120, 180];
+function layIcon(k) {
+  return h("span", { class: "lay-ico", "aria-hidden": "true" }, ...LAYOUTS[k].bars.map(([top, ht]) => h("i", { style: `top:${top}%;height:${ht}%` })));
+}
+function seg(options, value, onChange, label) {
+  const box = h("div", { class: "seg", role: "group", "aria-label": label });
+  const draw = v => { for (const b of box.children) b.setAttribute("aria-pressed", String(b.dataset.v === v)); };
+  for (const [v, text] of options) box.append(h("button", { type: "button", dataset: { v }, onclick: () => { draw(v); onChange(v); } }, text));
+  draw(value);
+  return box;
+}
+/* ---------- webcam picker: drag a box over a real frame of the stream, or auto-detect ---------- */
+const PANEL_AR = 1080 / 806; // webcam panel shape in the stacked layouts (width / height, pixels)
+const CP_MIN = 0.04;
+const CORNERS = [["top-left", "Top left"], ["top-right", "Top right"], ["bottom-left", "Bottom left"], ["bottom-right", "Bottom right"]];
+function camPicker(r, ctx, getLayout) {
+  let fc = r.facecam ? { ...r.facecam } : null;
+  let frames = [], fi = 0, srcAR = 16 / 9, lock = false, face = null, loaded = false, busy = false;
+  const img = new Image();
+  const bg = h("img", { class: "cp-bg", alt: "", draggable: "false" });
+  const keep = h("div", { class: "cp-keep", hidden: true });
+  const faceMark = h("div", { class: "cp-face", hidden: true });
+  const tag = h("span", { class: "cp-tag" });
+  const box = h("div", { class: "cp-box", tabindex: "0", role: "group", hidden: true,
+    "aria-label": "Webcam area. Drag to move, drag the handles to resize. Arrow keys move it; Shift + arrows resize." },
+    tag, ...["nw", "n", "ne", "e", "se", "s", "sw", "w"].map(d => h("i", { class: `cp-h ${d}`, dataset: { d } })));
+  const empty = h("div", { class: "cp-empty" });
+  const stage = h("div", { class: "cp-stage" }, bg, faceMark, keep, box, empty);
+  const out = h("canvas", { class: "cp-out", width: "216", height: "384", role: "img", "aria-label": "How the top of the clip will look" });
+  const status = h("div", { class: "cp-status", "aria-live": "polite" });
+  const strip = h("div", { class: "cp-strip", role: "group", "aria-label": "Frames from the stream" });
+  const say = (msg, kind = "") => { status.className = `cp-status ${kind}`; status.textContent = msg; };
+
+  const detectBtn = h("button", { class: "btn sm primary", type: "button" }, "Auto-detect webcam");
+  const framesBtn = h("button", { class: "btn sm", type: "button" }, "New frames");
+  const bigBtn = h("button", { class: "btn sm ghost", type: "button" }, "Bigger view");
+  const clearBtn = h("button", { class: "btn sm ghost", type: "button" }, "Clear");
+  const lockIn = h("input", { type: "checkbox" });
+  const corners = h("div", { class: "seg cp-corners", role: "group", "aria-label": "Quick corner" },
+    ...CORNERS.map(([k, label]) => h("button", { type: "button", title: `Webcam in the ${label.toLowerCase()} corner`,
+      onclick: () => { const p = OPTIONS.facecam_presets[k]; if (p) { fc = { ...p }; if (lock) fc = fit(fc, "se"); commit(); } } }, label)));
+  const num = (k, label) => { const i = h("input", { class: "input mono", type: "number", min: "0", max: "100", step: "0.5" });
+    i.addEventListener("input", () => { fc = fc || { x: 0, y: 0, w: .25, h: .3 }; fc[k] = Math.max(0, Math.min(100, Number(i.value) || 0)) / 100; fc = clampBox(fc); commit(true); });
+    return [k, h("label", {}, label, i), i]; };
+  const nums = [num("x", "Left %"), num("y", "Top %"), num("w", "Width %"), num("h", "Height %")];
+  const fine = h("details", { class: "more" }, h("summary", { text: "Exact numbers" }), h("div", { class: "cp-nums" }, ...nums.map(n => n[1])));
+
+  const el = h("div", { class: "cp" },
+    h("div", { class: "cp-main" }, stage, h("div", { class: "cp-side" }, out, h("span", { text: "Result" }))),
+    status, strip,
+    h("div", { class: "inline-row" }, detectBtn, framesBtn, bigBtn, clearBtn),
+    h("div", { class: "inline-row" }, corners,
+      h("label", { class: "switch", title: "Keep the box the same shape as the webcam panel, so nothing gets trimmed" },
+        lockIn, h("span", { class: "track" }), "Match panel shape")),
+    fine);
+
+  /* geometry (all in 0..1 of the source frame) */
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function clampBox(b) {
+    let { x, y, w, h: hh } = b;
+    w = clamp(w, CP_MIN, 1); hh = clamp(hh, CP_MIN, 1);
+    return { x: clamp(x, 0, 1 - w), y: clamp(y, 0, 1 - hh), w, h: hh };
+  }
+  const kAR = () => PANEL_AR / srcAR; // normalised w/h that matches the panel
+  function fit(b, mode) { // force the panel shape, anchored opposite the dragged handle
+    let { x, y, w, h: hh } = b; const k = kAR();
+    if (/^[ns]$/.test(mode)) { const nw = hh * k; x += (w - nw) / 2; w = nw; }
+    else { const nh = w / k; if (mode.includes("n")) y += hh - nh; else if (!mode.includes("s")) y += (hh - nh) / 2; hh = nh; }
+    if (w > 1) { w = 1; hh = w / k; } if (hh > 1) { hh = 1; w = hh * k; }
+    return clampBox({ x, y, w, h: hh });
+  }
+  function pt(e) { const rc = stage.getBoundingClientRect(); return { x: clamp((e.clientX - rc.left) / rc.width, 0, 1), y: clamp((e.clientY - rc.top) / rc.height, 0, 1) }; }
+
+  let drag = null;
+  stage.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    const p = pt(e), d = e.target.dataset && e.target.dataset.d;
+    if (d && fc) drag = { mode: d, p0: p, o: { ...fc } };
+    else if (fc && e.target.closest(".cp-box")) drag = { mode: "move", p0: p, o: { ...fc } };
+    else { drag = { mode: "draw", p0: p }; fc = { x: p.x, y: p.y, w: 0, h: 0 }; }
+    stage.setPointerCapture(e.pointerId); e.preventDefault(); box.focus({ preventScroll: true });
+  });
+  stage.addEventListener("pointermove", e => {
+    if (!drag) return;
+    const p = pt(e), o = drag.o, m = drag.mode;
+    if (m === "move") fc = clampBox({ ...o, x: o.x + p.x - drag.p0.x, y: o.y + p.y - drag.p0.y });
+    else if (m === "draw") {
+      const b = { x: Math.min(p.x, drag.p0.x), y: Math.min(p.y, drag.p0.y), w: Math.abs(p.x - drag.p0.x), h: Math.abs(p.y - drag.p0.y) };
+      fc = lock && b.w > .01 ? fit(b, (p.y < drag.p0.y ? "n" : "s") + (p.x < drag.p0.x ? "w" : "e")) : b;
+    } else {
+      let l = o.x, t = o.y, rt = o.x + o.w, bt = o.y + o.h;
+      if (m.includes("w")) l = Math.min(p.x, rt - CP_MIN);
+      if (m.includes("e")) rt = Math.max(p.x, l + CP_MIN);
+      if (m.includes("n")) t = Math.min(p.y, bt - CP_MIN);
+      if (m.includes("s")) bt = Math.max(p.y, t + CP_MIN);
+      const b = { x: l, y: t, w: rt - l, h: bt - t };
+      fc = lock ? fit(b, m) : clampBox(b);
+    }
+    draw();
+  });
+  const endDrag = () => {
+    if (!drag) return;
+    if (drag.mode === "draw" && (!fc || fc.w < .02 || fc.h < .02)) { // a click: drop a default-size box there
+      const p = drag.p0; fc = clampBox({ x: p.x - .125, y: p.y - .15, w: .25, h: .3 }); if (lock) fc = fit(fc, "se");
+    }
+    drag = null; commit();
+  };
+  stage.addEventListener("pointerup", endDrag); stage.addEventListener("pointercancel", endDrag);
+  box.addEventListener("keydown", e => {
+    if (!fc || !e.key.startsWith("Arrow")) return;
+    e.preventDefault();
+    const s = e.altKey ? .001 : .005, dx = e.key === "ArrowLeft" ? -s : e.key === "ArrowRight" ? s : 0, dy = e.key === "ArrowUp" ? -s : e.key === "ArrowDown" ? s : 0;
+    fc = e.shiftKey ? (lock ? fit({ ...fc, w: fc.w + dx + dy * kAR() }, "se") : clampBox({ ...fc, w: fc.w + dx, h: fc.h + dy })) : clampBox({ ...fc, x: fc.x + dx, y: fc.y + dy });
+    commit();
+  });
+  lockIn.addEventListener("change", () => { lock = lockIn.checked; if (lock && fc) { fc = fit(fc, "e"); commit(); } });
+  clearBtn.addEventListener("click", () => { fc = null; face = null; commit(); });
+
+  const pct = v => `${(v * 100).toFixed(1).replace(/\.0$/, "")}%`;
+  function draw() {
+    box.hidden = !fc;
+    stage.style.aspectRatio = String(srcAR);
+    if (fc) {
+      Object.assign(box.style, { left: pct(fc.x), top: pct(fc.y), width: pct(fc.w), height: pct(fc.h) });
+      tag.textContent = `${Math.round(fc.w * 100)} × ${Math.round(fc.h * 100)}%`;
+      // the part of the box that survives the crop to the panel shape
+      const k = kAR(), ratio = (fc.w / fc.h) / k;
+      keep.hidden = Math.abs(ratio - 1) < .04;
+      if (!keep.hidden) {
+        const kw = ratio > 1 ? fc.h * k : fc.w, kh = ratio > 1 ? fc.h : fc.w / k;
+        Object.assign(keep.style, { left: pct(fc.x + (fc.w - kw) / 2), top: pct(fc.y + (fc.h - kh) / 2), width: pct(kw), height: pct(kh) });
+      }
+    } else keep.hidden = true;
+    faceMark.hidden = !face;
+    if (face) Object.assign(faceMark.style, { left: pct(face.x), top: pct(face.y), width: pct(face.w), height: pct(face.h) });
+    empty.hidden = !!fc;
+    empty.replaceChildren(...(fc ? [] : [h("b", { text: busy ? "Looking at the stream…" : "Drag across the streamer's webcam" }),
+      h("span", { text: busy ? "" : loaded ? "or press Auto-detect" : canLoad() ? "or press Auto-detect to grab frames and find it" : "or pick a corner below" })]));
+    for (const [k, , i] of nums) if (document.activeElement !== i) i.value = fc ? +(fc[k] * 100).toFixed(1) : "";
+    drawOut();
+  }
+  function drawOut() {
+    const g = out.getContext("2d"), W = out.width, H = out.height, camH = Math.round(H * 0.42), gameH = H - camH;
+    const top = getLayout() !== "cam_bottom", camY = top ? 0 : gameH, gameY = top ? camH : 0;
+    const css = getComputedStyle(document.documentElement);
+    g.clearRect(0, 0, W, H);
+    if (!img.complete || !img.naturalWidth || !loaded) {
+      g.fillStyle = css.getPropertyValue("--raised"); g.fillRect(0, camY, W, camH);
+      g.fillStyle = css.getPropertyValue("--sunken"); g.fillRect(0, gameY, W, gameH);
+      g.fillStyle = css.getPropertyValue("--ink-3"); g.font = "600 20px system-ui"; g.textAlign = "center";
+      g.fillText("Webcam", W / 2, camY + camH / 2 + 7); g.fillText("Gameplay", W / 2, gameY + gameH / 2 + 7);
+      return;
+    }
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const gar = W / gameH; let gw = iw, gh = ih;
+    if (iw / ih > gar) gw = ih * gar; else gh = iw / gar;
+    g.drawImage(img, (iw - gw) / 2, (ih - gh) / 2, gw, gh, 0, gameY, W, gameH);
+    if (fc) {
+      let sx = fc.x * iw, sy = fc.y * ih, sw = fc.w * iw, sh = fc.h * ih; const car = W / camH;
+      if (sw / sh > car) { const cw = sh * car; sx += (sw - cw) / 2; sw = cw; } else { const ch = sw / car; sy += (sh - ch) / 2; sh = ch; }
+      g.drawImage(img, sx, sy, sw, sh, 0, camY, W, camH);
+    } else {
+      g.fillStyle = css.getPropertyValue("--raised"); g.fillRect(0, camY, W, camH);
+      g.fillStyle = css.getPropertyValue("--ink-3"); g.font = "600 18px system-ui"; g.textAlign = "center"; g.fillText("Pick the webcam", W / 2, camY + camH / 2 + 6);
+    }
+  }
+  function commit(fromNums = false) {
+    r.facecam = fc ? { x: +fc.x.toFixed(4), y: +fc.y.toFixed(4), w: +fc.w.toFixed(4), h: +fc.h.toFixed(4) } : null;
+    if (!fromNums || fc) draw();
+  }
+
+  /* frames + auto-detect */
+  function target() {
+    if (ctx.previewTarget) return { ...ctx.previewTarget };
+    const u = ctx.urlFrom ? ctx.urlFrom() : null;
+    return u ? { url: u } : null;
+  }
+  const canLoad = () => !!(ctx.previewTarget || ctx.urlFrom);
+  function showFrame(i) {
+    fi = i; img.src = bg.src = frames[i];
+    for (const [j, b] of [...strip.children].entries()) b.setAttribute("aria-pressed", String(j === i));
+  }
+  img.addEventListener("load", () => { srcAR = img.naturalWidth / img.naturalHeight || 16 / 9; loaded = true; draw(); });
+  async function load(detect, btn) {
+    const t = target();
+    if (!t) { say(ctx.urlFrom ? "Paste the stream or video link above first." : "No stream to look at yet.", "warn"); return; }
+    busy = true; stage.classList.add("loading"); draw();
+    say(t.url ? "Opening the link and grabbing a few frames (10–30 s)…" : detect ? "Grabbing frames and looking for a face that stays put…" : "Grabbing frames…");
+    try {
+      await withBusy(btn, async () => {
+        const res = await api("POST", "/api/facecam", { ...t, detect });
+        frames = res.frames || [];
+        strip.replaceChildren(...frames.map((u, i) => h("button", { type: "button", "aria-label": `Frame ${i + 1}`, onclick: () => showFrame(i) }, h("img", { src: u, alt: "" }))));
+        if (frames.length) showFrame(Math.min(fi, frames.length - 1));
+        const g = res.guess;
+        if (detect && g) {
+          fc = clampBox(g); face = g.face; if (lock) fc = fit(fc, "e"); commit();
+          say(`Found it${g.method === "border" ? " (matched the overlay's edges)" : ""}, ${Math.round(g.confidence * 100)}% sure. Drag to adjust; flip frames to check.`, g.confidence >= .6 ? "ok" : "warn");
+        } else if (detect) say("Couldn't spot a webcam automatically (no face that stays in one place). Drag across it in the picture.", "warn");
+        else say("Drag across the webcam. Flip through frames to check it stays inside.");
+      });
+    } catch (err) { say(err.message, "warn"); }
+    finally { busy = false; stage.classList.remove("loading"); draw(); }
+  }
+  detectBtn.addEventListener("click", () => load(true, detectBtn));
+  framesBtn.addEventListener("click", () => load(false, framesBtn));
+  framesBtn.hidden = !canLoad(); detectBtn.hidden = !canLoad();
+
+  /* bigger view: move the picker into a dialog and back */
+  const dlg = h("dialog", { class: "cp-dialog", "aria-label": "Pick the webcam area" });
+  const spot = document.createComment("cam-picker");
+  const closeBtn = h("button", { class: "btn sm primary", type: "button", onclick: () => dlg.close() }, "Done");
+  dlg.append(h("div", { class: "head" }, h("h3", { text: "Where is the streamer's webcam?" }), closeBtn));
+  bigBtn.addEventListener("click", () => {
+    if (dlg.open) return dlg.close();
+    el.replaceWith(spot); dlg.append(el); document.body.append(dlg); dlg.showModal(); bigBtn.textContent = "Smaller view"; draw();
+  });
+  dlg.addEventListener("close", () => { spot.replaceWith(el); dlg.remove(); bigBtn.textContent = "Bigger view"; draw(); });
+
+  draw();
+  return {
+    el,
+    redraw: draw,
+    shown() { if (!loaded && !busy && ctx.previewTarget && !this._tried) { this._tried = true; load(!fc, detectBtn); } },
+  };
+}
+
+/* mode: "source" (live stream defaults), "vod" (video job defaults), "clip" (one clip: single layout, hook text, trim) */
+function styleEditor(mode, initial = {}, ctx = {}) {
+  const st = JSON.parse(JSON.stringify(initial || {}));
+  const r = st.render || (st.render = {});
+  r.layout ??= "center"; r.captions ??= true; r.caption_position ??= "bottom"; r.hook ??= true; r.quality ??= "standard";
+  r.story ??= true; r.voiceover ??= true; r.voice ??= "male_us"; r.expressive ??= true; r.effects ??= true;
+  st.layout_mode ??= "fixed"; st.layouts ??= [r.layout]; st.auto_post ??= true;
+  const clipMode = mode === "clip";
+  if (clipMode) { st.layout_mode = "fixed"; st.layouts = [r.layout]; }
+  const box = h("div", { class: "stylebox" });
+
+  // layouts
+  const layGrp = h("div", { class: "grp" });
+  const modeRow = clipMode ? null : seg([["fixed", "Same every clip"], ["cycle", "Take turns"], ["random", "Random"]], st.layout_mode, v => {
+    st.layout_mode = v; if (v === "fixed") st.layouts = [st.layouts[0] || r.layout]; drawLayouts();
+  }, "Layout rotation");
+  const chips = h("div", { class: "chipset", role: "group", "aria-label": "Layouts" });
+  const layNote = h("div", { class: "note" });
+  function drawLayouts() {
+    const multi = st.layout_mode !== "fixed";
+    chips.replaceChildren(...Object.keys(LAYOUTS).map(k => {
+      const idx = st.layouts.indexOf(k);
+      return h("button", { type: "button", class: "chipbtn", "aria-pressed": String(idx >= 0), title: LAYOUTS[k].hint,
+        onclick: () => {
+          if (!multi) st.layouts = [k];
+          else if (idx >= 0) { if (st.layouts.length > 1) st.layouts.splice(idx, 1); }
+          else st.layouts.push(k);
+          r.layout = st.layouts[0]; drawLayouts(); drawCam();
+        } }, layIcon(k), LAYOUTS[k].name, multi && idx >= 0 ? h("span", { class: "ix", text: String(idx + 1) }) : null);
+    }));
+    layNote.textContent = st.layout_mode === "cycle" ? `Clips take turns in this order: ${st.layouts.map(k => LAYOUTS[k].name).join(" → ")}.` :
+      st.layout_mode === "random" ? "Each clip picks one of the selected layouts at random." : LAYOUTS[st.layouts[0]].hint + ".";
+  }
+  layGrp.append(h("div", { class: "lbl", text: clipMode ? "Layout" : "Layout" }), ...(modeRow ? [modeRow] : []), chips, layNote);
+
+  // webcam region (only when a stacked layout is in play)
+  const camGrp = h("div", { class: "grp" });
+  const picker = camPicker(r, ctx, () => st.layouts.find(k => k.startsWith("cam_")) || "cam_top");
+  const prevBox = h("div", { class: "preview" });
+  const prevBtn = h("button", { class: "btn sm", type: "button" }, "Preview a finished frame");
+  function drawCam() {
+    const needs = st.layouts.some(k => k.startsWith("cam_"));
+    camRow.hidden = !needs;
+    camOff.hidden = needs;
+    if (needs) { picker.shown(); picker.redraw(); }
+  }
+  const camRow = h("div", { class: "grp" }, h("div", { class: "lbl", text: "Where is the streamer's webcam?" }), picker.el);
+  // always visible: the webcam tools live with the stacked layouts, so offer the shortcut
+  const camUse = h("button", { class: "btn sm", type: "button" }, "Use streamer-on-top layout & auto-detect webcam");
+  camUse.addEventListener("click", () => {
+    if (st.layout_mode === "fixed") st.layouts = ["cam_top"]; else if (!st.layouts.includes("cam_top")) st.layouts.push("cam_top");
+    r.layout = st.layouts[0]; drawLayouts(); drawCam();
+    camRow.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  });
+  const camOff = h("div", { class: "grp" }, h("div", { class: "lbl", text: "Streamer webcam" }),
+    h("div", { class: "note", text: "To put the streamer's face in its own panel, pick “Streamer on top” or “Streamer below” above. Then drag a box over the webcam or let Clipper find it." }),
+    h("div", { class: "inline-row" }, camUse));
+  camGrp.append(camOff, camRow);
+  if (ctx.previewable) {
+    prevBtn.addEventListener("click", () => withBusy(prevBtn, async () => {
+      try { const res = await api("POST", "/api/preview", { opts: currentRender(), ...ctx.previewTarget });
+        prevBox.replaceChildren(h("img", { src: `${res.url}?t=${Date.now()}`, alt: "Preview of the layout" }), h("span", { class: "note", text: "One frame rendered exactly like the clip will be (without captions)." })); }
+      catch (err) { toast(err.message, "err"); }
+    }));
+    camGrp.append(h("div", { class: "inline-row" }, prevBtn), prevBox);
+  }
+
+  // captions & hook & quality
+  const capSw = h("input", { type: "checkbox" }); capSw.checked = !!r.captions;
+  const capPos = h("select", { class: "input", "aria-label": "Caption position" },
+    h("option", { value: "bottom", text: "Bottom" }), h("option", { value: "middle", text: "Middle (between panels)" }), h("option", { value: "top", text: "Top" }));
+  capPos.value = r.caption_position;
+  capSw.addEventListener("change", () => { r.captions = capSw.checked; capPos.disabled = !capSw.checked; });
+  capPos.disabled = !r.captions;
+  capPos.addEventListener("change", () => { r.caption_position = capPos.value; });
+  const hookSw = h("input", { type: "checkbox" }); hookSw.checked = !!r.hook;
+  hookSw.addEventListener("change", () => { r.hook = hookSw.checked; if (hookText) hookText.disabled = !hookSw.checked; });
+  const hookText = clipMode ? h("input", { class: "input", maxlength: "80", placeholder: "Hook line shown on the video and thumbnail", value: r.hook_text || ctx.hook || "" }) : null;
+  if (hookText) hookText.addEventListener("input", () => { r.hook_text = hookText.value.trim() || null; });
+  const textGrp = h("div", { class: "grp" }, h("div", { class: "lbl", text: "Text on the video" }),
+    h("div", { class: "inline-row" }, h("label", { class: "switch" }, capSw, h("span", { class: "track" }), "Captions"), capPos),
+    h("div", { class: "inline-row" }, h("label", { class: "switch" }, hookSw, h("span", { class: "track" }), "Hook line")), hookText);
+  const sw = (key, label, onChange) => {
+    const i = h("input", { type: "checkbox" }); i.checked = !!r[key];
+    i.addEventListener("change", () => { r[key] = i.checked; onChange && onChange(); });
+    return [i, h("div", { class: "inline-row" }, h("label", { class: "switch" }, i, h("span", { class: "track" }), label))];
+  };
+  const voiceSel = h("select", { class: "input", "aria-label": "Voice" },
+    ...[["male_us", "Male · American"], ["female_us", "Female · American"], ["male_uk", "Male · British"], ["female_uk", "Female · British"]]
+      .map(([v, t]) => h("option", { value: v, text: t })));
+  voiceSel.value = r.voice;
+  voiceSel.addEventListener("change", () => { r.voice = voiceSel.value; });
+  const [, storyRow] = sw("story", "AI hook, title and intro script");
+  const [, exprRow] = sw("expressive", "Expressive (laughs, gasps, emotion)");
+  const syncVoice = () => { voiceSel.disabled = !r.voiceover; exprRow.querySelector("input").disabled = !r.voiceover; };
+  const [, voRow] = sw("voiceover", "Voiceover intro", syncVoice);
+  const [, fxRow] = sw("effects", "Teaser, zoom, sound effects, progress bar");
+  syncVoice();
+  const storyGrp = h("div", { class: "grp" }, h("div", { class: "lbl", text: "Story & voice" }),
+    storyRow, voRow, voiceSel, exprRow, fxRow,
+    h("div", { class: "note", text: "The voice reads a one-line intro written for this clip. Expressive adds laughs or gasps only where they fit." }));
+  const qGrp = h("div", { class: "grp" }, h("div", { class: "lbl", text: "Quality" }),
+    seg([["standard", "Standard"], ["high", "High"], ["2k", "2K 1440p"]], r.quality, v => { r.quality = v; }, "Quality"),
+    h("div", { class: "note", text: "High and 2K make bigger files: best for keeping clips to post later." }));
+
+  // timing
+  let lenSel = null, shiftIn = null;
+  const fmtLen = n => n < 60 ? `${n} s` : `${n / 60} min${n % 60 ? ` ${n % 60} s` : ""}`;
+  const lenOpts = [
+    ...(clipMode ? [] : [h("option", { value: "random", text: "Random, 30 – 90 s (each clip different)" })]),
+    h("option", { value: "", text: clipMode ? "Keep current length" : "Default (23 s + teaser)" }),
+    ...LENGTHS.map(n => h("option", { value: String(n), text: fmtLen(n) })),
+    ...(clipMode ? [] : [h("option", { value: "random:120", text: "Random, 30 s – 2 min (YouTube only past 90 s)" })])];
+  lenSel = h("select", { class: "input", "aria-label": "Clip length" }, ...lenOpts);
+  const randomOn = !clipMode && st.random_length !== false;
+  lenSel.value = randomOn ? (st.clip_seconds && st.clip_seconds > 90 ? `random:${st.clip_seconds}` : "random")
+    : (st.clip_seconds ? String(st.clip_seconds) : "");
+  const lenNote = h("div", { class: "note" });
+  const drawLen = () => {
+    if (lenSel.value.startsWith("random")) { const hi = st.clip_seconds || 90; lenNote.textContent = `Every clip gets its own length between 30 s and ${hi} s. ${hi > 90 ? "Clips over 90 s: YouTube only." : "Fits YouTube Shorts and Facebook Reels."}`; return; }
+    const v = Number(lenSel.value) || (clipMode ? ctx.duration : 25); lenNote.textContent = v > 90 ? "Longer than 90 s: YouTube only (Facebook Reels max 90 s)." : "Fits YouTube Shorts and Facebook Reels."; };
+  lenSel.addEventListener("change", () => {
+    const v = lenSel.value;
+    if (v.startsWith("random")) { st.random_length = true; st.clip_seconds = v.includes(":") ? Number(v.split(":")[1]) : 90; }
+    else { st.random_length = false; st.clip_seconds = Number(v) || null; }
+    drawLen(); });
+  const timeGrp = h("div", { class: "grp" }, h("div", { class: "lbl", text: "Clip length" }), lenSel, lenNote);
+  if (clipMode && ctx.canRecut) {
+    shiftIn = h("input", { class: "input mono", type: "number", min: "-60", max: "60", step: "1", value: "0", "aria-label": "Move start by seconds" });
+    timeGrp.append(h("div", { class: "lbl", text: "Move the start (seconds, − earlier / + later)" }), shiftIn);
+  }
+  drawLen();
+
+  // posting (not for single clips: those are posted from the Posting section)
+  const parts = [layGrp, camGrp, textGrp, storyGrp, qGrp, timeGrp];
+  if (!clipMode) {
+    const auto = h("input", { type: "checkbox" }); auto.checked = st.auto_post;
+    auto.addEventListener("change", () => { st.auto_post = auto.checked; });
+    const accts = state.data?.accounts || [];
+    const defaults = state.data?.limits?.publish_platforms || [];
+    const sel = (st.platforms ? [...st.platforms] : [...defaults]).filter(k => accts.some(a => a.key === k));
+    const pchips = accts.length ? h("div", { class: "chipset" }, ...accts.map(a => {
+      const b = h("button", { type: "button", class: "chipbtn", "aria-pressed": String(sel.includes(a.key)), title: a.label, onclick: () => {
+        const i = sel.indexOf(a.key); if (i >= 0) { if (sel.length > 1) sel.splice(i, 1); } else sel.push(a.key);
+        b.setAttribute("aria-pressed", String(sel.includes(a.key))); st.platforms = [...sel]; } }, a.label);
+      return b; })) : h("div", { class: "note", text: "No channel or Page connected yet: add them under Connections." });
+    const postGrp = h("div", { class: "grp" }, h("div", { class: "lbl", text: "Posting" }),
+      h("label", { class: "switch" }, auto, h("span", { class: "track" }), "Post automatically on the safe schedule"),
+      h("div", { class: "note", text: "Off: clips are saved to your library to post now or schedule later. Posting always needs the permission box." }),
+      h("div", { class: "lbl", text: "Post to" }), pchips);
+    parts.push(postGrp);
+    if (mode === "source") {
+      const maxIn = h("input", { class: "input mono", type: "number", min: "1", max: "500", placeholder: "No limit", value: st.max_clips_per_day ?? "" });
+      maxIn.addEventListener("input", () => { st.max_clips_per_day = Number(maxIn.value) || null; });
+      parts.push(h("div", { class: "grp" }, h("div", { class: "lbl", text: "Most clips per day from this stream" }), maxIn));
+    }
+  }
+  box.append(...parts);
+  drawLayouts(); drawCam();
+  function currentRender() { return { ...r, layout: st.layouts[0] }; }
+  return {
+    el: box,
+    get style() {
+      const missingCam = st.layouts.some(k => k.startsWith("cam_")) && !r.facecam;
+      if (missingCam) throw new Error("Choose where the streamer's webcam is for the stacked layouts.");
+      return { ...st, render: { ...r, layout: st.layouts[0] } };
+    },
+    get render() { return { ...r, layout: st.layouts[0] }; },
+    get shift() { return shiftIn ? Number(shiftIn.value) || 0 : 0; },
+    get length() { return Number(lenSel.value) || null; },
+  };
+}
+
+/* ---------- source input: detect what was pasted ---------- */
+function detectSource(raw) {
+  raw = raw.trim();
+  if (!raw) return null;
+  let m = raw.match(/^(?:https?:\/\/)?(?:www\.|m\.)?twitch\.tv\/([A-Za-z0-9_]{3,25})\/?(.*)$/i);
+  if (m) return m[2] && m[2].startsWith("videos") ? { vod: true } : { platform: "twitch", label: `Twitch channel “${m[1]}”` };
+  if (/^(?:https?:\/\/)?(?:www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(raw)) {
+    return /\/live\b|@/.test(raw) ? { platform: "youtube", label: "YouTube live stream" } :
+      { platform: "youtube", label: "YouTube link: watched while it is live (for a finished video, use Clip videos)" };
+  }
+  if (/^@[\w.-]{3,}$/.test(raw)) return { platform: "youtube", label: `YouTube channel ${raw} (its live stream)` };
+  if (/^[A-Za-z0-9_]{3,25}$/.test(raw)) return { platform: "twitch", label: `Twitch channel “${raw}”` };
+  return { bad: true };
+}
+$("#src-input").addEventListener("input", e => {
+  const d = detectSource(e.target.value), hint = $("#src-hint");
+  e.target.removeAttribute("aria-invalid");
+  hint.className = "hint";
+  if (!d) hint.textContent = "";
+  else if (d.vod) { hint.className = "hint err"; hint.textContent = "That's a past Twitch video. Paste it under Clip videos instead."; }
+  else if (d.bad) { hint.className = "hint err"; hint.textContent = "Not recognised. Paste a Twitch channel or link, a YouTube live link, or an @handle."; }
+  else { hint.className = "hint ok"; hint.textContent = `Detected: ${d.label}`; }
+  const chat = $("#add-src [name=sig_chat]");
+  if (d && d.platform === "youtube" && !chat.dataset.touched) chat.checked = false;
+  if (d && d.platform === "twitch" && !chat.dataset.touched) chat.checked = true;
+});
+$("#add-src [name=sig_chat]").addEventListener("change", e => { e.target.dataset.touched = "1"; });
+let addSrcStyle = null, vodStyle = null;
+function srcLink() {
+  const raw = $("#src-input").value.trim(), d = detectSource(raw);
+  if (!d || d.bad) return null;
+  if (/^@/.test(raw)) return `https://www.youtube.com/${raw}/live`;
+  if (/^[A-Za-z0-9_]{3,25}$/.test(raw)) return `https://www.twitch.tv/${raw}`;
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+const srcStyleEditor = () => styleEditor("source", {}, { urlFrom: srcLink });
+function mountFormEditors() {
+  addSrcStyle = srcStyleEditor(); $("#add-src-style").replaceChildren(addSrcStyle.el);
+  vodStyle = styleEditor("vod", {}, { urlFrom: () => vodLinks()[0] || null }); $("#vod-style").replaceChildren(vodStyle.el);
+}
+
+$("#add-src").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, input = f.input, d = detectSource(input.value);
+  if (!d || d.bad || d.vod) { input.setAttribute("aria-invalid", "true"); input.focus(); input.dispatchEvent(new Event("input")); return; }
+  const signals = [f.sig_chat.checked && "chat", f.sig_audio.checked && "audio"].filter(Boolean);
+  if (!signals.length) { toast("Pick at least one way to detect highlights.", "err"); return; }
+  let style;
+  try { style = addSrcStyle.style; } catch (err) { toast(err.message, "err"); return; }
+  await withBusy($("#add-src-btn"), async () => {
+    try {
+      const r = await api("POST", "/api/sources", { input: input.value, display_name: f.display_name.value || null,
+        category: f.category.value || null, signals, publish: f.publish.checked, style });
+      toast(`Watching ${r.slug}. It starts recording as soon as the stream is live.`, "ok");
+      f.reset(); delete f.sig_chat.dataset.touched; $("#src-hint").textContent = "";
+      addSrcStyle = srcStyleEditor(); $("#add-src-style").replaceChildren(addSrcStyle.el);
+      refresh();
+    } catch (err) { toast(err.message, "err"); }
+  });
+});
+
+/* ---------- videos ---------- */
+const vodLinks = () => $("#vod-urls").value.split(/\n+/).map(s => s.trim()).filter(Boolean);
+const isLocalPath = u => /^(\/|~|file:\/\/)/.test(u);
+let vodFiles = [];
+function showVodFiles() {
+  $("#vod-files-list").textContent = vodFiles.length ? vodFiles.map(f => `${f.name} (${(f.size / 1e6).toFixed(0)} MB)`).join(" · ") : "";
+}
+$("#vod-drop").addEventListener("click", () => $("#vod-files").click());
+$("#vod-drop").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#vod-files").click(); } });
+$("#vod-files").addEventListener("change", e => { vodFiles = [...vodFiles, ...e.target.files]; e.target.value = ""; showVodFiles(); });
+$("#vod-drop").addEventListener("dragover", e => { e.preventDefault(); $("#vod-drop").classList.add("over"); });
+$("#vod-drop").addEventListener("dragleave", () => $("#vod-drop").classList.remove("over"));
+$("#vod-drop").addEventListener("drop", e => {
+  e.preventDefault(); $("#vod-drop").classList.remove("over");
+  vodFiles = [...vodFiles, ...[...e.dataTransfer.files].filter(f => f.type.startsWith("video/") || /\.(mkv|ts|flv|mov|mp4|m4v|webm|avi)$/i.test(f.name))];
+  showVodFiles();
+});
+function uploadVideo(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", `/api/upload?name=${encodeURIComponent(file.name)}`);
+    xhr.setRequestHeader("X-Clipper-Token", TOKEN);
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.upload.onprogress = e => e.lengthComputable && onProgress(e.loaded / e.total);
+    xhr.onload = () => {
+      let data = {}; try { data = JSON.parse(xhr.responseText); } catch { /* empty */ }
+      xhr.status < 300 ? resolve(data.path) : reject(new Error(data.detail || `Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("Upload failed: Clipper isn't reachable"));
+    xhr.send(file);
+  });
+}
+$("#vod-urls").addEventListener("input", () => {
+  const n = vodLinks().length;
+  $("#add-vod-btn").textContent = n > 1 ? `Clip ${n} videos` : "Clip videos";
+  $("#vod-hint").textContent = "";
+});
+$("#add-vod").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, urls = vodLinks();
+  const bad = urls.filter(u => !/^https?:\/\/\S+$/.test(u) && !isLocalPath(u));
+  if ((!urls.length && !vodFiles.length) || bad.length) {
+    $("#vod-hint").className = "hint err";
+    $("#vod-hint").textContent = bad.length ? `Not a link or file path: ${bad[0]}` : "Paste a video link or add a video file.";
+    $("#vod-urls").focus(); return;
+  }
+  let style;
+  try { style = vodStyle.style; } catch (err) { toast(err.message, "err"); return; }
+  await withBusy($("#add-vod-btn"), async () => {
+    try {
+      for (const [i, file] of vodFiles.entries()) {
+        $("#vod-hint").className = "hint";
+        urls.push(await uploadVideo(file, p => { $("#vod-hint").textContent = `Uploading ${file.name} (${i + 1}/${vodFiles.length}): ${Math.round(p * 100)}%`; }));
+      }
+      vodFiles = []; showVodFiles(); $("#vod-hint").textContent = "";
+      await api("POST", "/api/vods", { urls, clips: Number(f.clips.value) || null, category: f.category.value || null, publish: f.publish.checked, style });
+      toast(`Started ${urls.length} video job${urls.length > 1 ? "s" : ""}.`, "ok");
+      f.urls.value = ""; f.urls.dispatchEvent(new Event("input"));
+      refresh();
+    } catch (err) { toast(err.message, "err"); }
+  });
+});
+
+/* ---------- render: top bar ---------- */
+function renderTop(d) {
+  $("#st-uptime").textContent = uptime(d.started_at);
+  const rec = d.sources.filter(s => s.state === "recording").length;
+  const st = $("#st-sources");
+  st.replaceChildren(h("span", { class: `dot ${rec ? "live" : ""}` }),
+    h("span", {}, h("b", { text: `${rec} recording` }), ` of ${d.sources.length} stream${d.sources.length === 1 ? "" : "s"}`));
+  $("#st-queue").textContent = String(d.render.queued_events);
+  $("#st-antibot").replaceChildren(h("span", { class: `dot ${d.antibot ? "ok" : "warn"}` }), h("span", { text: d.antibot ? "Anti-bot on" : "Anti-bot off" }));
+  const pa = $("#pause-all-btn"), allPaused = d.sources.length && d.sources.every(s => s.state === "paused");
+  pa.hidden = !d.sources.length;
+  pa.textContent = allPaused ? "Resume all recording" : "Pause all recording";
+  pa.dataset.paused = allPaused ? "1" : "";
+  const hb = $("#hold-btn"), p = d.publishing;
+  hb.hidden = !p.enabled;
+  if (p.enabled && !hb.dataset.armedAt) {
+    hb.textContent = p.hold ? "Resume posting" : "Hold posting";
+    hb.className = `btn ${p.hold ? "primary" : ""}`;
+    hb.setAttribute("aria-pressed", String(p.hold));
+  }
+}
+$("#pause-all-btn").addEventListener("click", async e => {
+  const resume = !!e.currentTarget.dataset.paused;
+  await withBusy(e.currentTarget, async () => {
+    try { await api("POST", "/api/sources/pause-all", { paused: !resume }); toast(resume ? "Recording resumed on all streams." : "All recording paused. Streams stay in your list.", "ok"); refresh(); }
+    catch (err) { toast(err.message, "err"); }
+  });
+});
+$("#hold-btn").addEventListener("click", async e => {
+  const hold = !(state.data && state.data.publishing.hold);
+  await withBusy(e.currentTarget, async () => {
+    try { await api("POST", "/api/publishing/hold", { hold }); toast(hold ? "Posting held. Clips keep queuing." : "Posting resumed.", "ok"); refresh(); }
+    catch (err) { toast(err.message, "err"); }
+  });
+});
+
+/* ---------- render: sources ---------- */
+const STATE_TEXT = { recording: "Recording", offline: "Not live", checking: "Checking…", paused: "Paused", blocked: "Can't check" };
+function renderSources(d) {
+  const box = $("#sources");
+  $("#src-count").textContent = d.sources.length ? String(d.sources.length) : "";
+  if (!d.sources.length) {
+    box.replaceChildren(h("div", { class: "empty" }, h("strong", { text: "No streams yet." }),
+      "Paste a Twitch channel or YouTube live link above. Clipper checks every 30 seconds and starts recording the moment it goes live."));
+    return;
+  }
+  // Don't rebuild while the operator is mid-action (armed button / pending confirmation / focus).
+  if (box.querySelector(".armed,[data-confirmed],.editor") || box.contains(document.activeElement)) return;
+  const order = { recording: 0, checking: 1, offline: 2, paused: 3 };
+  box.replaceChildren(...[...d.sources].sort((a, b) => order[a.state] - order[b.state] || a.name.localeCompare(b.name)).map(s => {
+    const sw = h("input", { type: "checkbox", "aria-label": `Post clips from ${s.name}` });
+    sw.checked = s.publish;
+    sw.addEventListener("change", async () => {
+      const want = sw.checked;
+      if (want && !sw.dataset.confirmed) {
+        sw.checked = false;
+        const lbl = sw.closest(".switch").querySelector(".lbl");
+        lbl.textContent = "Click again: I have the rights";
+        lbl.style.color = "var(--warn)";
+        sw.dataset.confirmed = "1";
+        setTimeout(() => { delete sw.dataset.confirmed; lbl.textContent = "Post clips"; lbl.style.color = ""; }, 5000);
+        return;
+      }
+      try { await api("POST", `/api/sources/${encodeURIComponent(s.slug)}/publish`, { publish: want });
+        toast(want ? `Clips from ${s.name} will be posted.` : `Clips from ${s.name} stay local.`, "ok"); refresh(); }
+      catch (err) { sw.checked = !want; toast(err.message, "err"); }
+    });
+    const remove = armed(h("button", { class: "btn sm", type: "button" }), "Remove", "Confirm remove", async () => {
+      try { await api("DELETE", `/api/sources/${encodeURIComponent(s.slug)}`); toast(`Stopped watching ${s.name}.`, "ok"); refresh(); }
+      catch (err) { toast(err.message, "err"); }
+    });
+    const saved = s.segments ? `${s.segments} min saved` : null;
+    const st = s.style || {}, rr = st.render || {};
+    const styleSummary = [
+      st.layout_mode && st.layout_mode !== "fixed" ? `${st.layout_mode === "cycle" ? "takes turns" : "random"}: ${(st.layouts || []).map(k => LAYOUTS[k]?.name).join(", ")}` : LAYOUTS[rr.layout || "center"]?.name,
+      st.random_length !== false ? `random 30–${st.clip_seconds || 90}s` : st.clip_seconds ? `${st.clip_seconds}s` : null, rr.captions === false ? "no captions" : null,
+      rr.quality && rr.quality !== "standard" ? rr.quality.toUpperCase() : null,
+      st.max_clips_per_day ? `max ${st.max_clips_per_day}/day` : null,
+      s.publish ? (st.auto_post === false ? "saves to library" : `auto-posts to ${(st.platforms || state.data.limits.publish_platforms).map(acctShort).join(" + ") || "nothing yet"}`) : null,
+    ].filter(Boolean).join(" · ");
+    const editBtn = h("button", { class: "btn sm", type: "button" }, "Edit style");
+    const pauseBtn = h("button", { class: `btn sm ${s.state === "paused" ? "primary" : ""}`, type: "button" }, s.state === "paused" ? "Resume" : "Pause");
+    pauseBtn.addEventListener("click", () => withBusy(pauseBtn, async () => {
+      const resume = s.state === "paused";
+      try { await api("POST", `/api/sources/${encodeURIComponent(s.slug)}/pause`, { paused: !resume });
+        toast(resume ? `Watching ${s.name} again.` : `${s.name} paused. Recording stopped cleanly; resume any time.`, "ok"); refresh(); }
+      catch (err) { toast(err.message, "err"); }
+    }));
+    const row = h("div", { class: "src" });
+    editBtn.addEventListener("click", () => {
+      const open = row.querySelector(".editor");
+      if (open) { open.remove(); editBtn.textContent = "Edit style"; return; }
+      const ed = styleEditor("source", s.style, { previewable: true, previewTarget: { slug: s.slug } });
+      const save = h("button", { class: "btn primary sm", type: "button" }, "Save style");
+      const cancel = h("button", { class: "btn ghost sm", type: "button", onclick: () => { wrap.remove(); editBtn.textContent = "Edit style"; } }, "Cancel");
+      save.addEventListener("click", () => withBusy(save, async () => {
+        let style; try { style = ed.style; } catch (err) { toast(err.message, "err"); return; }
+        try { await api("PATCH", `/api/sources/${encodeURIComponent(s.slug)}`, { style }); toast(`Saved. New clips from ${s.name} use this style.`, "ok"); wrap.remove(); editBtn.textContent = "Edit style"; refresh(); }
+        catch (err) { toast(err.message, "err"); }
+      }));
+      const wrap = h("div", { class: "editor" }, ed.el, h("div", { class: "inline-row", style: "margin-top:8px" }, save, cancel));
+      row.append(wrap); editBtn.textContent = "Close editor";
+    });
+    const detail = s.state === "paused" ? "not recording" : s.state === "recording" ? saved :
+      s.state === "blocked" ? `${s.check_error}${s.retry_at && s.retry_at > now() ? ` · retrying in ${until(s.retry_at)}` : ""}` :
+      s.last_data ? `last live ${ago(s.last_data)}` : s.last_check ? `checked ${ago(s.last_check)}` : "first check in a moment";
+    row.append(
+      h("span", { class: `dot ${s.state === "recording" ? "live" : ""}`, "aria-hidden": "true" }),
+      h("div", { class: "name", title: s.name, text: s.name }),
+      h("span", { class: `state ${s.state}`, text: STATE_TEXT[s.state] || s.state }),
+      h("div", { class: "sub" },
+        h("span", { text: PLAT[s.platform] }),
+        h("span", { text: s.signals.map(x => x === "chat" ? "chat" : "audio").join(" + ") }),
+        s.category && h("span", { text: s.category }),
+        detail && h("span", { text: detail }),
+        s.state === "blocked" && /sign in/i.test(s.check_error || "") ? h("a", { href: "#yt-signin", text: "Sign in to YouTube →",
+          onclick: () => { const det = $("#connections details"); if (det) det.open = true; } }) : null,
+        h("a", { href: s.url, target: "_blank", rel: "noopener noreferrer", text: "Open stream ↗" })),
+      h("div", { class: "sub", text: styleSummary }),
+      h("div", { class: "actions" },
+        h("label", { class: "switch" }, sw, h("span", { class: "track" }), h("span", { class: "lbl", text: "Post clips" })),
+        h("div", { class: "row" }, pauseBtn, editBtn, remove)));
+    return row;
+  }));
+}
+
+/* ---------- render: video jobs ---------- */
+const STAGE = { queued: "Waiting for a free slot", downloading: "Downloading", analysing: "Finding the best moments", rendering: "Rendering clips", done: "Done", failed: "Failed" };
+function renderJobs(d) {
+  const box = $("#jobs");
+  if (!d.vod_jobs.length) { box.replaceChildren(); return; }
+  box.replaceChildren(...d.vod_jobs.map(j => {
+    const active = !["done", "failed"].includes(j.status);
+    const pct = j.status === "rendering" && j.total ? Math.round((j.done / j.total) * 100) : j.status === "done" ? 100 : null;
+    let line = STAGE[j.status] || j.status;
+    if (j.status === "rendering" && j.total) line += ` ${j.done}/${j.total}`;
+    if (j.status === "done") line = j.clips.length ? `${j.clips.length} clip${j.clips.length > 1 ? "s" : ""} made${j.publish ? ", queued to post" : ", kept local"}${j.skipped ? ` (${j.skipped} already clipped before)` : ""}` : (j.error ? j.error[0].toUpperCase() + j.error.slice(1) : "No highlights found");
+    if (j.status === "failed") line = `Failed: ${j.error}`;
+    return h("div", { class: "job" },
+      h("div", { class: "row", style: "justify-content:space-between;flex-wrap:nowrap" },
+        h("div", { class: "title", title: j.url, text: j.title || j.url }),
+        h("span", { class: `tag ${j.status === "done" ? "ok" : j.status === "failed" ? "err" : "accent"}`, text: j.status === "done" ? "Done" : j.status === "failed" ? "Failed" : "Working" })),
+      h("div", { class: "muted", style: "font-size:12px", text: [line, j.uploader, j.duration ? dur(j.duration) : ""].filter(Boolean).join(" · ") }),
+      active || j.status === "done" ? h("div", { class: `bar ${pct == null && active ? "indeterminate" : ""} ${j.status === "done" ? "ok" : ""}` },
+        h("i", { style: pct == null ? "" : `width:${pct}%` })) : null);
+  }));
+}
+
+/* ---------- render: publishing ---------- */
+function renderPublishing(d) {
+  const p = d.publishing, notices = [], q = p.quota;
+  if (p.session_disabled) notices.push(h("div", { class: "notice info" }, "Posting is off for this session (started with --no-publish). Clips are still made and queued."));
+  else if (!p.enabled) notices.push(h("div", { class: "notice warn" }, "No channel or Page is connected, so nothing will be posted. Add one under ", h("a", { href: "#connections", text: "Connections" }), "."));
+  if (p.hold) notices.push(h("div", { class: "notice warn" }, "Posting is on hold. Clips keep queuing and will post in order when you resume."));
+  for (const pl of p.platforms) if (pl.paused_reason) notices.push(h("div", { class: "notice err" },
+    h("div", {}, h("b", { text: `${pl.label} paused: ` }), pl.paused_reason.slice(0, 140), " ",
+      h("a", { href: "#connections", text: "Reconnect in Connections →", onclick: () => { const det = $("#connections details"); if (det) det.open = true; } }))));
+  $("#pub-notices").replaceChildren(...notices);
+  $("#pub-sub").textContent = p.platforms.map(pl => `${acctShort(pl.key)} ${pl.enabled ? `${pl.max_per_day}/day` : "off"}`).join(" · ");
+  const pubBox = $("#pub");
+  if (pubBox.querySelector(".limits-form")) {  // operator is editing limits: leave the cards alone
+    renderSchedList(p); return;
+  }
+  const cards = p.platforms.map(pl => {
+    const full = pl.posted_24h >= pl.max_per_day;
+    let slot = "Ready now";
+    if (!p.enabled || p.session_disabled) slot = "Off";
+    else if (!pl.active) slot = "Not connected";
+    else if (!pl.enabled) slot = "Turned off";
+    else if (pl.paused_reason) slot = "Paused";
+    else if (p.hold) slot = "On hold";
+    else if (full) slot = "Daily limit reached";
+    else if (pl.next_slot) slot = `${clock(pl.next_slot)} (in ${until(pl.next_slot)})`;
+    const dotCls = pl.paused_reason || !pl.active ? "err" : (p.hold || !p.enabled || p.session_disabled) ? "warn" : "ok";
+    return h("div", { class: "plat" },
+      h("div", { class: "head" }, h("div", { class: "name", title: pl.label }, h("span", { class: `dot ${dotCls}` }), h("span", { class: "ellipsis", text: pl.label })),
+        pl.failed ? h("span", { class: "tag err", text: `${pl.failed} failed` }) : null),
+      h("div", { class: "kv" }, h("span", { text: "Posted in last 24 h" }), h("b", { class: "mono", text: `${pl.posted_24h} / ${pl.max_per_day}` })),
+      h("div", { class: `meter ${full ? "full" : ""}`, role: "meter", "aria-valuemin": "0", "aria-valuemax": String(pl.max_per_day), "aria-valuenow": String(pl.posted_24h), "aria-label": `${pl.label} posts today` },
+        h("i", { style: `width:${Math.min(100, (pl.posted_24h / pl.max_per_day) * 100)}%` })),
+      h("div", { class: "kv" }, h("span", { text: "Clips queued" }), h("b", { class: "mono", text: String(pl.pending) })),
+      h("div", { class: "kv" }, h("span", { text: "Next post" }), h("b", { text: slot })),
+      h("div", { class: "kv" }, h("span", { text: "Last post" }), h("b", { text: pl.last_post ? ago(pl.last_post) : "never" })),
+      pl.active ? limitsButton(pl) : null);
+  });
+  if (p.platforms.some(pl => pl.platform === "youtube")) {
+    const used = q.youtube, pct = Math.min(100, (used / q.limit) * 100);
+    cards.push(h("div", { class: "plat" },
+      h("div", { class: "head" }, h("div", { class: "name", text: "YouTube API quota" }), h("span", { class: "muted mono", style: "font-size:11.5px", text: `shared by all channels · resets midnight PT` })),
+      h("div", { class: "kv" }, h("span", { text: "Used today" }), h("b", { class: "mono", text: `${used.toLocaleString()} / ${q.limit.toLocaleString()}` })),
+      h("div", { class: `meter ${pct > 85 ? "full" : ""}`, role: "meter", "aria-valuemin": "0", "aria-valuemax": String(q.limit), "aria-valuenow": String(used), "aria-label": "YouTube quota used" },
+        h("i", { style: `width:${pct}%` })),
+      h("div", { class: "kv" }, h("span", { text: "Uploads left today (≈1,600 each)" }), h("b", { class: "mono", text: String(Math.max(0, Math.floor((q.limit * 0.9 - used) / 1600))) })),
+      h("div", { class: "kv" }, h("span", { text: "Live-chat reading" }), h("b", { class: "mono", text: `${q.chat} / ${q.chat_budget}` }))));
+  }
+  $("#pub").replaceChildren(...cards);
+  renderSchedList(p);
+}
+function limitsButton(pl) {
+  const btn = h("button", { class: "btn sm ghost", type: "button", style: "justify-self:start" }, "Change limits");
+  btn.addEventListener("click", () => {
+    const card = btn.closest(".plat");
+    const per = h("input", { class: "input mono", type: "number", min: "1", max: "20", value: String(pl.max_per_day), "aria-label": "Posts per day" });
+    const gap = h("input", { class: "input mono", type: "number", min: "10", max: "1440", step: "5", value: String(pl.spacing_minutes), "aria-label": "Minutes between posts" });
+    const on = h("input", { type: "checkbox" }); on.checked = pl.enabled;
+    const warn = h("div", { class: "note", style: "font-size:12px;color:var(--warn)" });
+    const check = () => { warn.textContent = Number(per.value) > 4 ? "More than 4 a day raises the risk of spam flags on new channels." : Number(gap.value) < 60 ? "Posts closer than an hour apart can look automated." : ""; };
+    per.addEventListener("input", check); gap.addEventListener("input", check); check();
+    const save = h("button", { class: "btn primary sm", type: "button" }, "Save");
+    const cancel = h("button", { class: "btn ghost sm", type: "button", onclick: () => { form.remove(); btn.hidden = false; refresh(); } }, "Cancel");
+    save.addEventListener("click", () => withBusy(save, async () => {
+      try { await api("POST", `/api/platforms/${encodeURIComponent(pl.key)}`, { max_per_day: Number(per.value), min_spacing_minutes: Number(gap.value), enabled: on.checked });
+        toast(`${pl.label}: ${on.checked ? `${per.value} per day, ${gap.value} min apart` : "posting turned off"}.`, "ok"); form.remove(); btn.hidden = false; refresh(); }
+      catch (err) { toast(err.message, "err"); }
+    }));
+    const form = h("div", { class: "limits-form" },
+      h("div", { class: "grid2" }, h("label", { class: "field" }, "Posts per day", per), h("label", { class: "field" }, "Minutes apart", gap)),
+      h("label", { class: "switch" }, on, h("span", { class: "track" }), `Post to ${pl.label}`), warn,
+      h("div", { class: "inline-row" }, save, cancel));
+    btn.hidden = true; card.append(form); per.focus();
+  });
+  return btn;
+}
+function renderSchedList(p) {
+  const sched = p.scheduled || [];
+  $("#sched-wrap").hidden = !sched.length;
+  const box = $("#sched");
+  if (!box.querySelector(".armed")) box.replaceChildren(...sched.map(x => h("div", { class: "sched-row" },
+    h("span", { class: "t", text: x.scheduled_at > now() + 60 ? when(x.scheduled_at) : "posting now" }),
+    h("span", { class: "hk" }, h("span", { class: "tag", text: acctShort(x.platform) }), " ",
+      h("a", { href: "#", text: x.hook || `clip #${x.clip_id}`, onclick: e => { e.preventDefault(); openClip(x.clip_id); } })),
+    armed(h("button", { class: "btn sm", type: "button" }, ), "Cancel", "Confirm cancel", async () => {
+      try { await api("POST", `/api/clips/${x.clip_id}/unschedule`, { platform: x.platform }); toast("Scheduled post cancelled.", "ok"); refresh(); }
+      catch (err) { toast(err.message, "err"); } }, "warn"))));
+}
+
+/* ---------- render: clips ---------- */
+function clipKind(c) {
+  if (!c.jobs.length) return "local";
+  if (c.jobs.some(j => j.status === "failed" && j.error !== "file removed")) return "failed";
+  if (c.jobs.some(j => j.status === "scheduled")) return "scheduled";
+  if (c.jobs.some(j => j.status === "pending" || j.status === "uploading")) return "queued";
+  if (c.jobs.some(j => j.status === "posted")) return "posted";
+  return "other";
+}
+const FILTERS = [["all", "All"], ["scheduled", "Scheduled"], ["queued", "Auto queue"], ["posted", "Posted"], ["local", "Library"], ["failed", "Failed"]];
+function jobChip(j) {
+  const name = acctShort(j.platform);
+  const map = { posted: ["ok", "posted"], pending: ["accent", "queued"], uploading: ["accent", "uploading"], failed: ["err", "failed"], expired: ["", "not posted"],
+    scheduled: ["accent", j.scheduled_at && j.scheduled_at > now() + 60 ? `at ${when(j.scheduled_at)}` : "posting now"] };
+  const [cls, word] = map[j.status] || ["", j.status];
+  return j.url ? h("a", { class: `tag ${cls}`, href: j.url, target: "_blank", rel: "noopener noreferrer", onclick: e => e.stopPropagation(), text: `${name} ${word} ↗` })
+               : h("span", { class: `tag ${cls}`, text: `${name} ${word}` });
+}
+function renderClips(d) {
+  const shown = d.clips.filter(c => c.video || c.offline || c.jobs.some(j => j.status === "posted"));  // removed + never posted: hidden
+  const counts = { all: shown.length };
+  for (const c of shown) counts[clipKind(c)] = (counts[clipKind(c)] || 0) + 1;
+  const tabs = $("#tabs"), tabSig = JSON.stringify([state.filter, counts]);
+  if (tabs.dataset.sig !== tabSig) {  // rebuild only on change: keeps keyboard focus stable
+    const focused = document.activeElement && tabs.contains(document.activeElement) ? document.activeElement.dataset.k : null;
+    tabs.dataset.sig = tabSig;
+    tabs.replaceChildren(...FILTERS.map(([k, label]) => h("button", { class: "tab", type: "button", dataset: { k }, "aria-pressed": String(state.filter === k),
+      onclick: () => { state.filter = k; renderClips(state.data); } }, label, h("span", { class: "n", text: String(counts[k] || 0) }))));
+    if (focused) { const el = tabs.querySelector(`[data-k="${focused}"]`); if (el) el.focus(); }
+  }
+  const list = shown.filter(c => state.filter === "all" || clipKind(c) === state.filter);
+  const box = $("#clips");
+  if (!list.length) {
+    box.dataset.sig = "";
+    box.replaceChildren(h("div", { class: "empty", style: "grid-column:1/-1" },
+      h("strong", { text: d.clips.length ? "Nothing in this filter." : "No clips yet." }),
+      d.clips.length ? "Try another filter above." : "Clips appear here as soon as a highlight is detected. Watch a live stream or clip a video on the left to start."));
+    return;
+  }
+  // Keep existing card nodes when nothing changed, so images don't flicker on each poll.
+  const tick = Math.floor(now() / 60);  // once a minute, refresh the "x min ago" labels
+  const sig = c => JSON.stringify([c.id, c.thumb, c.hook, c.version, c.offline, c.rerender && c.rerender.status, c.jobs.map(j => j.platform + j.status + j.remote_id + j.scheduled_at), tick]);
+  const listSig = list.map(sig).join("|");
+  if (box.dataset.sig === listSig) return;  // unchanged: leave DOM (and focus) alone
+  box.dataset.sig = listSig;
+  const old = new Map([...box.querySelectorAll(".clip")].map(el => [el.dataset.sig, el]));
+  box.replaceChildren(...list.map(c => {
+    const s = sig(c);
+    if (old.has(s)) return old.get(s);
+    const card = h("button", { class: "clip", type: "button", dataset: { sig: s }, "aria-label": `Open clip: ${c.hook || "untitled"}`, onclick: () => openClip(c.id) },
+      h("div", { class: "frame" },
+        c.thumb ? h("img", { src: `${c.thumb}?v=${c.version}`, alt: "", loading: "lazy" }) : h("div", { class: "ph", text: c.video ? "No thumbnail" : c.offline ? "Drive not connected" : "File deleted" }),
+        c.duration ? h("span", { class: "dur", text: dur(c.duration) }) : null),
+      h("div", { class: "hook", text: c.hook || "Earlier clip (no hook)" }),
+      h("div", { class: "meta" }, h("span", { text: c.source_name || c.source || "earlier session" }), h("span", { text: "·" }), h("span", { text: ago(c.created) })),
+      h("div", { class: "chips" }, c.offline ? h("span", { class: "tag warn", text: "Drive not connected" }) : null,
+        c.rerender && c.rerender.status === "working" ? h("span", { class: "tag accent", text: "Re-rendering…" }) : null,
+        c.render_opts && c.render_opts.layout !== "center" ? h("span", { class: "tag", text: LAYOUTS[c.render_opts.layout]?.name || c.render_opts.layout }) : null,
+        c.jobs.length ? c.jobs.map(jobChip) : h("span", { class: "tag", text: "In library" })));
+    return card;
+  }));
+}
+
+/* ---------- clip drawer ---------- */
+const drawer = $("#drawer");
+$("#dr-close").addEventListener("click", () => drawer.close());
+drawer.addEventListener("click", e => { if (e.target === drawer) drawer.close(); });
+drawer.addEventListener("close", () => { const v = $("video", drawer); if (v) v.pause(); state.openClip = null; });
+function openClip(id) {
+  state.openClip = id;
+  renderDrawer(true);
+  if (!drawer.open) drawer.showModal();
+}
+function renderDrawer(fresh = false) {
+  const c = state.data && state.data.clips.find(x => x.id === state.openClip);
+  if (!c) { if (drawer.open) drawer.close(); return; }
+  $("#dr-title").textContent = c.hook || "Earlier clip";
+  const content = $("#dr-content");
+  const working = c.rerender && c.rerender.status === "working";
+  const contentSig = JSON.stringify([c.id, !!c.video, c.version, working]);
+  if (fresh || content.dataset.sig !== contentSig) {
+    content.dataset.sig = contentSig;
+    const ro = c.render_opts || {};
+    content.replaceChildren(...[
+      working ? h("div", { class: "rerender", role: "status" }, h("span", { class: "dot live" }), "Re-rendering with your changes… the new version appears here when ready.") : null,
+      c.rerender && c.rerender.status === "failed" ? h("div", { class: "notice err" }, `Re-render failed: ${c.rerender.error}`) : null,
+      c.video ? h("video", { src: `${c.video}?v=${c.version}`, controls: true, playsinline: true, preload: "metadata", poster: c.thumb ? `${c.thumb}?v=${c.version}` : null }) :
+        c.offline ? h("div", { class: "empty" }, h("strong", { text: "This clip is on a drive that isn't connected." }), "Plug the drive back in and it appears again. Its scheduled posts wait for it.") :
+        h("div", { class: "empty" }, h("strong", { text: "Video file deleted." }), "The record is kept so posting history stays accurate."),
+      h("dl", { class: "dl" },
+        h("dt", { text: "Source" }), h("dd", {}, c.source_url ? h("a", { href: c.source_url, target: "_blank", rel: "noopener noreferrer", text: c.source_name || c.source }) : (c.source_name || c.source || "earlier session")),
+        h("dt", { text: "Created" }), h("dd", { text: `${new Date(c.created * 1000).toLocaleString()} (${ago(c.created)})` }),
+        h("dt", { text: "Length" }), h("dd", { class: "mono", text: dur(c.duration) || "–" }),
+        h("dt", { text: "Style" }), h("dd", { text: [LAYOUTS[ro.layout || "center"]?.name, ro.captions === false ? "no captions" : `captions ${ro.caption_position || "bottom"}`, ro.hook === false ? "no hook" : null, ro.voiceover === false ? "no voice" : `${(ro.voice || "male_us").replace("_", " ")} voice`, (ro.quality || "standard")].filter(Boolean).join(" · ") }),
+        h("dt", { text: "Highlight score" }), h("dd", { class: "mono", text: c.score.toFixed(1) }),
+        h("dt", { text: c.folder ? "Folder" : "File" }), h("dd", { class: "mono path", text: c.folder || c.abs_path || "–" })),
+      h("section", { id: "dr-post" }),
+      c.video ? editSection(c) : null,
+      c.transcript ? h("div", {}, h("h3", { text: "What was said", style: "margin-bottom:6px" }), h("p", { class: "transcript", text: c.transcript })) : null,
+    ].filter(Boolean));
+  }
+  renderPosting(c, fresh);
+  renderDrawerFooter(c, fresh);
+}
+
+function editSection(c) {
+  const ed = styleEditor("clip", { render: c.render_opts || {} }, { duration: c.duration, canRecut: c.can_recut, hook: c.hook,
+    previewable: c.can_recut, previewTarget: { clip_id: c.id } });
+  const go = h("button", { class: "btn primary", type: "button", disabled: !c.can_recut }, "Re-render this clip");
+  go.addEventListener("click", () => withBusy(go, async () => {
+    let render; try { render = ed.style.render; } catch (err) { toast(err.message, "err"); return; }
+    try { await api("POST", `/api/clips/${c.id}/rerender`, { opts: render, shift: ed.shift, length: ed.length });
+      toast("Re-rendering. Posted versions on YouTube/Facebook don't change.", "ok"); refresh(); }
+    catch (err) { toast(err.message, "err"); }
+  }));
+  return h("details", { class: "more" }, h("summary", { text: "Edit style, length or start, then re-render" }),
+    h("div", {}, c.can_recut ? null : h("div", { class: "notice warn" }, "This clip was made before re-editing existed, so its source can't be re-cut."),
+      ed.el, h("div", { class: "inline-row" }, go)));
+}
+
+function renderPosting(c, fresh) {
+  const host = $("#dr-post");
+  const accts = (state.data.accounts || []);
+  const sig = JSON.stringify([c.id, accts.map(a => a.key), c.jobs.map(j => [j.platform, j.status, j.scheduled_at, j.remote_id]), Math.floor(now() / 60)]);
+  if (!fresh && (host.dataset.sig === sig || host.contains(document.activeElement) || host.querySelector(".armed"))) return;
+  host.dataset.sig = sig;
+  const lim = state.data.limits;
+  const keys = [...new Set([...accts.map(a => a.key), ...c.jobs.map(j => j.platform)])];
+  const src = state.data.sources.find(s => s.slug === c.source);
+  const needRights = !(src && src.publish);
+  const rights = h("input", { type: "checkbox" });
+  const rightsRow = needRights ? h("label", { class: "check" }, rights, h("span", { text: "I own this content or have permission to repost it." })) : null;
+  const canPost = k => { const j = c.jobs.find(x => x.platform === k); return !!acctOf(k) && !(j && ["posted", "uploading"].includes(j.status)) && !(platOf(k) === "facebook" && (c.duration || 0) > lim.facebook_max_seconds + 0.5); };
+  const refreshMe = async () => { await refresh(); const nc = state.data.clips.find(x => x.id === c.id); if (nc) renderPosting(nc, true); };
+  const send = async (targets, at) => {
+    if (needRights && !rights.checked) { toast("Tick the permission box first.", "err"); return; }
+    try { await api("POST", `/api/clips/${c.id}/schedule`, { platforms: targets, at, confirm_rights: needRights ? rights.checked : false });
+      toast(at ? `${targets.map(acctLabel).join(", ")}: scheduled for ${when(at)}.` : `Posting now to ${targets.map(acctLabel).join(", ")}.`, "ok"); await refreshMe(); }
+    catch (err) { toast(err.message, "err"); }
+  };
+  const rows = keys.map(k => {
+    const j = c.jobs.find(x => x.platform === k);
+    const gone = !acctOf(k);
+    const tooLong = platOf(k) === "facebook" && (c.duration || 0) > lim.facebook_max_seconds + 0.5;
+    const status = !j ? "Not posted" :
+      j.status === "posted" ? `Posted ${ago(j.posted_at)}` :
+      j.status === "scheduled" ? (j.scheduled_at > now() + 60 ? `Scheduled for ${when(j.scheduled_at)}` : "Posting within a minute") + (j.error ? ` (${j.error})` : "") :
+      j.status === "pending" ? (j.error && /drive/.test(j.error) ? j.error : "In the automatic queue (best clip first, safe spacing)") :
+      j.status === "uploading" ? "Uploading now" :
+      j.status === "failed" ? `Failed: ${j.error || "unknown error"}` : (j.error || "Not posted");
+    const head = h("div", { class: "top" }, h("span", { class: "tag", text: acctLabel(k), title: acctLabel(k) }), j ? jobChip(j) : null,
+      h("span", { class: "what", text: gone ? "Account removed" : tooLong ? `Too long for Reels (max ${lim.facebook_max_seconds}s). Re-cut it shorter to post here.` : status }));
+    const row = h("div", { class: "platpost" }, head);
+    if (!c.video || gone || tooLong || (j && ["posted", "uploading"].includes(j.status))) return row;
+    const dt = h("input", { class: "input", type: "datetime-local", "aria-label": `${acctLabel(k)} post time`,
+      value: localInputValue(j && j.status === "scheduled" && j.scheduled_at > now() ? j.scheduled_at : Math.ceil((now() + 3600) / 900) * 900), min: localInputValue(now()) });
+    const nowBtn = h("button", { class: "btn sm primary", type: "button" }, "Post now");
+    nowBtn.addEventListener("click", () => withBusy(nowBtn, () => send([k], null)));
+    const schBtn = h("button", { class: "btn sm", type: "button" }, j && j.status === "scheduled" ? "Move" : "Schedule");
+    schBtn.addEventListener("click", () => withBusy(schBtn, () => {
+      const t = new Date(dt.value).getTime() / 1000;
+      if (!t || t < now() + 60) { toast("Pick a time at least a minute from now.", "err"); return; }
+      return send([k], t);
+    }));
+    const tools = h("div", { class: "inline-row" }, nowBtn, dt, schBtn);
+    if (j && ["scheduled", "pending"].includes(j.status)) tools.append(armed(h("button", { class: "btn sm", type: "button" }), "Cancel", "Confirm cancel", async () => {
+      try { await api("POST", `/api/clips/${c.id}/unschedule`, { platform: k }); toast(`${acctLabel(k)}: cancelled.`, "ok"); await refreshMe(); }
+      catch (err) { toast(err.message, "err"); } }, "warn"));
+    row.append(tools);
+    return row;
+  });
+  // post to several at once: pick accounts, then now or at a time
+  let multi = null;
+  const open = keys.filter(canPost);
+  if (c.video && open.length > 1) {
+    const picked = new Set(open.filter(k => (lim.publish_platforms || []).includes(k)));
+    const chips = h("div", { class: "chipset" }, ...open.map(k => {
+      const b = h("button", { type: "button", class: "chipbtn", "aria-pressed": String(picked.has(k)), onclick: () => {
+        picked.has(k) ? picked.delete(k) : picked.add(k); b.setAttribute("aria-pressed", String(picked.has(k))); } }, acctLabel(k));
+      return b; }));
+    const dt = h("input", { class: "input", type: "datetime-local", "aria-label": "Post time for the selected accounts",
+      value: localInputValue(Math.ceil((now() + 3600) / 900) * 900), min: localInputValue(now()) });
+    const nowBtn = h("button", { class: "btn sm primary", type: "button" }, "Post now");
+    const schBtn = h("button", { class: "btn sm", type: "button" }, "Schedule");
+    const pick = () => { const t = [...picked]; if (!t.length) toast("Pick at least one channel or Page.", "err"); return t; };
+    nowBtn.addEventListener("click", () => withBusy(nowBtn, async () => { const t = pick(); if (t.length) await send(t, null); }));
+    schBtn.addEventListener("click", () => withBusy(schBtn, async () => {
+      const t = pick(); if (!t.length) return;
+      const at = new Date(dt.value).getTime() / 1000;
+      if (!at || at < now() + 60) { toast("Pick a time at least a minute from now.", "err"); return; }
+      await send(t, at);
+    }));
+    multi = h("div", { class: "platpost multi" }, h("div", { class: "top" }, h("b", { text: "Several at once" })), chips, h("div", { class: "inline-row" }, nowBtn, dt, schBtn));
+  }
+  host.replaceChildren(...[h("h3", { text: "Posting" }),
+    h("div", { class: "note muted", style: "font-size:12px;margin:4px 0 2px", text: keys.length ? "Scheduled posts go out while Clipper is running. Each channel's and Page's daily limit still applies." : "Connect a YouTube channel or Facebook Page under Connections to post from here." }),
+    rightsRow, multi, ...rows].filter(Boolean));
+}
+
+function renderDrawerFooter(c, fresh) {
+  const bar = $("#dr-actions");
+  const actSig = JSON.stringify([c.id, !!c.video, c.folder, c.jobs.map(j => j.platform + j.status)]);
+  if (!fresh && (bar.dataset.sig === actSig || bar.querySelector(".armed"))) return;
+  bar.dataset.sig = actSig;
+  const acts = [];
+  if (c.jobs.some(j => j.status === "failed" || j.status === "expired"))
+    acts.push(h("button", { class: "btn", type: "button", onclick: e => withBusy(e.currentTarget, () => act(c, "retry", "Back in the automatic queue.")) }, "Retry failed posts"));
+  if (c.video) acts.push(h("button", { class: "btn", type: "button", onclick: () => revealClip(c) }, "Show in Finder"),
+    h("button", { class: "btn ghost", type: "button", onclick: () => copyPath(c) }, "Copy file path"));
+  if (c.video) acts.push(armed(h("button", { class: "btn", type: "button", style: "margin-left:auto" }), c.folder ? "Delete clip folder" : "Delete files", "Confirm delete",
+    () => act(c, "delete", c.folder ? "Clip folder deleted." : "Clip files deleted.")));
+  bar.replaceChildren(...acts);
+}
+async function act(c, action, msg) {
+  try { await api("POST", `/api/clips/${c.id}/${action}`); toast(msg, "ok"); await refresh(); }
+  catch (err) { toast(err.message, "err"); }
+}
+
+/* ---------- discover ---------- */
+const DISC = {
+  twitch_live: { label: "Twitch live", hint: "Live right now, most viewers first. Big audiences mean busy chat and more highlights.", filter: "Game / category (optional)" },
+  twitch_clips: { label: "Top Twitch clips", hint: "This week's most-watched clips from today's biggest streamers: moments viewers already proved are highlights.", filter: "Game / category (optional)" },
+  twitch_vods: { label: "Top past streams", hint: "Most-viewed recent broadcasts from the biggest streamers. Clipper finds their best moments.", filter: "Game / category (optional)" },
+  youtube_live: { label: "YouTube live", hint: "Live on YouTube by viewers. Each refresh uses 101 of your 10,000 daily YouTube API units.", filter: "Search, e.g. gaming, NASA" },
+};
+const disc = { source: "twitch_live", q: "", data: {}, loading: false, error: "" };
+function fmtNum(n) { return n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}K` : String(n); }
+function renderDiscTabs() {
+  $("#disc-tabs").replaceChildren(...Object.entries(DISC).map(([k, v]) => h("button", { class: "tab", type: "button", "aria-pressed": String(disc.source === k),
+    onclick: () => { disc.source = k; disc.error = ""; renderDiscover(); if (!disc.data[k]) loadDiscover(false); } }, v.label)));
+}
+function renderDiscover() {
+  renderDiscTabs();
+  const cfg = DISC[disc.source], twitch = disc.source.startsWith("twitch"), ready = !twitch || state.data?.connections?.twitch?.connected;
+  const inp = h("input", { class: "input", placeholder: cfg.filter, value: disc.q, "aria-label": cfg.filter });
+  inp.addEventListener("input", () => { disc.q = inp.value; });
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") loadDiscover(true); });
+  const go = h("button", { class: "btn primary", type: "button", disabled: !ready }, disc.source === "youtube_live" ? "Refresh (101 units)" : "Refresh");
+  go.addEventListener("click", () => loadDiscover(true));
+  $("#disc-bar").replaceChildren(inp, go);
+  const d = disc.data[disc.source];
+  $("#disc-note").replaceChildren(...[
+    h("div", { class: "note muted", style: "font-size:12.5px", text: cfg.hint }),
+    !ready ? h("div", { class: "notice info", style: "margin-top:8px" }, "Twitch discovery needs a free Twitch app. Add its Client ID and Secret under ",
+      h("a", { href: "#connections", text: "Connections" }), ".") : null,
+    disc.error ? h("div", { class: "notice err", style: "margin-top:8px", text: disc.error }) : null,
+    d && d.empty_cache ? h("div", { class: "note muted", style: "font-size:12px;margin-top:6px", text: "Click Refresh to search. Results are kept for 20 minutes so repeat views cost nothing." }) : null,
+    d && !d.empty_cache ? h("div", { class: "note muted", style: "font-size:12px;margin-top:6px", text: `Updated ${ago(d.fetched_at)}${d.cached ? " (cached)" : ""} · ${d.items.length} results · other creators' content: clips stay on this computer unless you have permission to repost.` }) : null,
+  ].filter(Boolean));
+  const box = $("#disc");
+  if (disc.loading) { box.replaceChildren(...Array.from({ length: 4 }, () => h("div", { class: "skel", style: "aspect-ratio:16/12" }))); return; }
+  if (!d || !d.items.length) { box.replaceChildren(d && !d.empty_cache ? h("div", { class: "empty", style: "grid-column:1/-1" }, "Nothing found. Try another category or search.") : h("div")); return; }
+  box.replaceChildren(...d.items.slice(0, 24).map((it, i) => pickCard(it, i)));
+}
+function pickCard(it, i) {
+  const metric = it.viewers != null && it.kind.endsWith("live") ? `● ${fmtNum(it.viewers)} watching` : it.views != null ? `${fmtNum(it.views)} views` : "";
+  const watched = state.data?.sources?.some(s => s.url.toLowerCase().replace(/^https?:\/\/(www\.)?/, "") === it.url.toLowerCase().replace(/^https?:\/\/(www\.)?/, ""));
+  const act = h("button", { class: `btn sm ${i < 3 ? "primary" : ""}`, type: "button", disabled: !!watched }, it.action === "watch" ? (watched ? "Watching" : "Watch & clip") : "Clip it");
+  act.addEventListener("click", () => withBusy(act, async () => {
+    try {
+      if (it.action === "watch") {
+        await api("POST", "/api/sources", { input: it.url, display_name: it.channel, category: it.category || null, signals: it.kind === "twitch_live" ? ["chat", "audio"] : ["audio"], publish: false });
+        toast(`Watching ${it.channel}. Clips stay local (it's their content).`, "ok");
+      } else {
+        await api("POST", "/api/vods", { urls: [it.url], clips: it.kind === "twitch_clip" ? 1 : 3, publish: false });
+        toast(`Clipping “${it.title.slice(0, 40)}”. Find it in Clip videos → progress.`, "ok");
+      }
+      refresh();
+    } catch (err) { toast(err.message, "err"); }
+  }));
+  return h("div", { class: "pick" },
+    h("div", { class: "th" }, it.thumbnail ? h("img", { src: it.thumbnail, alt: "", loading: "lazy", referrerpolicy: "no-referrer" }) : null,
+      i < 3 ? h("span", { class: "badge tag accent", text: "Top pick" }) : null,
+      metric ? h("span", { class: "metric", text: metric }) : null),
+    h("div", { class: "tt", title: it.title, text: it.title || "(untitled)" }),
+    h("div", { class: "mt" }, h("span", { text: it.channel }), it.category ? h("span", { text: `· ${it.category}` }) : null,
+      it.duration_s ? h("span", { text: `· ${dur(it.duration_s)}` }) : null, it.created_at ? h("span", { text: `· ${ago(it.created_at)}` }) : null),
+    h("div", { class: "ac" }, act, h("a", { class: "btn sm ghost", href: it.url, target: "_blank", rel: "noopener noreferrer", text: "Open ↗" })));
+}
+async function loadDiscover(refreshNow) {
+  const twitch = disc.source.startsWith("twitch");
+  if (twitch && !state.data?.connections?.twitch?.connected) { renderDiscover(); return; }
+  disc.loading = true; disc.error = ""; renderDiscover();
+  const qs = new URLSearchParams({ source: disc.source, refresh: refreshNow ? "true" : "false" });
+  if (disc.source === "youtube_live" && !refreshNow) qs.set("cache_only", "true");  // never spend quota implicitly
+  if (disc.q) qs.set(disc.source === "youtube_live" ? "q" : "category", disc.q);
+  try { const res = await fetch(`/api/discover?${qs}`); const body = await res.json(); if (!res.ok) throw new Error(body.detail || "Discovery failed"); disc.data[disc.source] = body; }
+  catch (err) { disc.error = err.message; }
+  disc.loading = false; renderDiscover();
+}
+
+/* ---------- connections: YouTube channels, Facebook Pages, Twitch ---------- */
+const fbFlow = { pages: null, session: null, picked: new Set(), long: false };
+function renderConnections(d, force = false) {
+  const box = $("#conn-body"), c = d.connections || {};
+  const sig = JSON.stringify([c.accounts, c.youtube_signin, c.youtube_signin_url, c.facebook_app_secret_saved, c.twitch, c.youtube_cookies, fbFlow.session]);
+  if (!force) if (box.dataset.sig === sig || box.contains(document.activeElement) || box.querySelector(".armed") ||
+      [...box.querySelectorAll("input:not([type=checkbox])")].some(i => i.value)) return;  // don't disturb the operator
+  box.dataset.sig = sig;
+  const accts = c.accounts || [];
+  const tag = (cls, text) => h("span", { class: `tag ${cls}`, text });
+  function acctRow(a) {
+    const st = a.paused ? tag("err", "Paused: reconnect") : !a.connected ? tag("err", "Not connected") :
+      a.platform === "facebook" && !a.long_lived ? tag("warn", a.expires_at ? `Expires ${when(a.expires_at)}` : "Expires soon") :
+      tag("ok", a.platform === "facebook" ? "Connected · never expires" : "Connected");
+    const def = h("input", { type: "checkbox" }); def.checked = a.default;
+    def.addEventListener("change", async () => {
+      try { await api("POST", `/api/accounts/${encodeURIComponent(a.key)}/default`, { default: def.checked });
+        toast(def.checked ? `New clips post to ${a.label} by default.` : `${a.label}: only when you pick it.`, "ok"); refresh(); }
+      catch (err) { def.checked = !def.checked; toast(err.message, "err"); }
+    });
+    const rm = armed(h("button", { class: "btn sm ghost", type: "button" }), "Remove", "Confirm remove", async () => {
+      try { const r = await api("DELETE", `/api/accounts/${encodeURIComponent(a.key)}`);
+        toast(`${a.label} removed${r.dropped_jobs ? `; ${r.dropped_jobs} unposted job(s) dropped` : ""}. Posts already published stay up.`, "ok"); refresh(); }
+      catch (err) { toast(err.message, "err"); } });
+    return h("div", { class: "acct" },
+      h("div", { class: "acct-top" }, h("b", { class: "ellipsis", text: a.name || (a.platform === "youtube" ? "YouTube channel" : "Facebook Page"), title: a.label }), st),
+      a.paused ? h("div", { class: "note muted", style: "font-size:12px", text: a.paused.slice(0, 160) }) : null,
+      h("div", { class: "acct-tools" }, h("label", { class: "switch", title: "Clips from streams and videos post here unless their style picks other accounts" }, def, h("span", { class: "track" }), "Default for new clips"), rm));
+  }
+  // YouTube
+  const yts = accts.filter(a => a.platform === "youtube");
+  const waiting = c.youtube_signin === "waiting" || c.youtube_signin === "starting";
+  const ytBtn = h("button", { class: "btn sm primary", type: "button", disabled: waiting }, waiting ? "Waiting for Google…" : yts.length ? "Add or reconnect a channel" : "Connect YouTube channel");
+  ytBtn.addEventListener("click", () => withBusy(ytBtn, async () => {
+    try { const r = await api("POST", "/api/accounts/youtube/add"); toast(r.message, "ok"); refresh(); } catch (err) { toast(err.message, "err"); }
+  }));
+  const ytMsg = c.youtube_signin && /^(done|failed)/.test(c.youtube_signin) ? h("div", { class: `note ${c.youtube_signin.startsWith("failed") ? "err-text" : "muted"}`, style: "font-size:12px",
+    text: c.youtube_signin.startsWith("done") ? `Connected ${c.youtube_signin.slice(6)}.` : `Last sign-in ${c.youtube_signin}` }) : null;
+  const ytItem = h("div", { class: "conn-item" },
+    h("div", { class: "head" }, h("b", { text: "YouTube channels" }), tag(yts.length ? "" : "warn", String(yts.length))),
+    ...yts.map(acctRow),
+    h("div", { class: "note muted", style: "font-size:12px", text: "Google opens in your browser: pick the channel (brand channels are listed there). Signing in to a channel that's already here reconnects it. Another Google account must first be added as a test user in Google Cloud while the app is in Testing." }),
+    ytMsg,
+    waiting && c.youtube_signin_url ? h("div", { class: "notice info" }, h("div", {},
+      "Finish the sign-in in your browser. Nothing opened, or Continue does nothing? ",
+      h("a", { href: c.youtube_signin_url, target: "_blank", rel: "noopener noreferrer", text: "Open Google sign-in again ↗" }),
+      ". It gives up after 10 minutes so you can start over.")) : null,
+    h("div", { class: "inline-row" }, ytBtn));
+  // Facebook
+  const fbs = accts.filter(a => a.platform === "facebook");
+  const tok = h("input", { class: "input mono", type: "password", autocomplete: "off", placeholder: "User access token" });
+  const sec = h("input", { class: "input mono", type: "password", autocomplete: "off", placeholder: c.facebook_app_secret_saved ? "App secret (saved)" : "App secret (for permanent tokens)" });
+  const findBtn = h("button", { class: "btn primary sm", type: "button" }, "Find my Pages");
+  findBtn.addEventListener("click", () => withBusy(findBtn, async () => {
+    if (!tok.value.trim()) { toast("Paste the user access token first.", "err"); return; }
+    try { const r = await api("POST", "/api/accounts/facebook/pages", { user_token: tok.value.trim(), app_secret: sec.value.trim() || null });
+      tok.value = ""; sec.value = "";
+      fbFlow.pages = r.pages; fbFlow.session = r.session; fbFlow.long = r.long_lived; fbFlow.picked = new Set(r.pages.filter(p => p.suggested).map(p => p.id));
+      box.dataset.sig = ""; renderConnections(state.data, true); }
+    catch (err) { toast(err.message, "err"); }
+  }));
+  let picker = null;
+  if (fbFlow.pages) {
+    const addBtn = h("button", { class: "btn primary sm", type: "button" }, "Connect selected Pages");
+    const cancel = h("button", { class: "btn ghost sm", type: "button", onclick: () => { fbFlow.pages = null; fbFlow.session = null; box.dataset.sig = ""; renderConnections(state.data, true); } }, "Cancel");
+    addBtn.addEventListener("click", () => withBusy(addBtn, async () => {
+      if (!fbFlow.picked.size) { toast("Tick at least one Page.", "err"); return; }
+      try { const r = await api("POST", "/api/accounts/facebook/add", { session: fbFlow.session, page_ids: [...fbFlow.picked] });
+        toast(`Connected ${r.added.map(a => a.name).join(", ")}${fbFlow.long ? " (tokens don't expire)" : " (temporary: add the App secret for permanent tokens)"}.`, "ok");
+        fbFlow.pages = null; fbFlow.session = null; box.dataset.sig = ""; refresh(); }
+      catch (err) { toast(err.message, "err"); }
+    }));
+    picker = h("div", { class: "pagepick" },
+      h("div", { class: "lbl", text: "Which Pages should Clipper post to?" }),
+      ...fbFlow.pages.map(pg => {
+        const cb = h("input", { type: "checkbox" }); cb.checked = fbFlow.picked.has(pg.id); cb.disabled = !pg.can_post;
+        cb.addEventListener("change", () => { cb.checked ? fbFlow.picked.add(pg.id) : fbFlow.picked.delete(pg.id); });
+        return h("label", { class: "check" }, cb, h("span", {}, pg.name, pg.connected ? h("span", { class: "tag ok", style: "margin-left:6px", text: "connected" }) : null,
+          h("span", { class: `tag ${pg.permanent ? "ok" : "warn"}`, style: "margin-left:6px", text: pg.permanent ? "never expires" : "temporary" }),
+          !pg.can_post ? h("span", { class: "muted", text: " (you can't post on this Page)" }) : null));
+      }),
+      h("div", { class: "inline-row" }, addBtn, cancel));
+  }
+  const fbItem = h("div", { class: "conn-item" },
+    h("div", { class: "head" }, h("b", { text: "Facebook Pages" }), tag(fbs.length ? "" : "warn", String(fbs.length))),
+    ...fbs.map(acctRow),
+    picker || h("details", { class: "more", open: !fbs.length || fbs.some(a => a.paused || !a.long_lived) }, h("summary", { text: fbs.length ? "Add Pages or reconnect" : "Connect Facebook Pages" }),
+      h("div", {},
+        h("ol", {},
+          h("li", {}, "Open ", h("a", { href: "https://developers.facebook.com/tools/explorer/", target: "_blank", rel: "noopener noreferrer", text: "Graph API Explorer ↗" }),
+            ", pick your app, add pages_manage_posts, pages_read_engagement, pages_show_list, click Generate Access Token, allow every Page you want, then copy the token."),
+          h("li", {}, "For tokens that never expire: ", h("a", { href: "https://developers.facebook.com/apps/", target: "_blank", rel: "noopener noreferrer", text: "your app ↗" }),
+            " → App settings → Basic → App secret → Show (needed once; stored encrypted)."),
+          h("li", { text: "Paste below, then tick the Pages to post to. Nothing is posted to a Page you don't tick." })),
+        tok, sec, h("div", { class: "inline-row" }, findBtn))));
+  // Twitch
+  const tw = c.twitch || {};
+  const cid = h("input", { class: "input mono", autocomplete: "off", placeholder: "Client ID" });
+  const csec = h("input", { class: "input mono", type: "password", autocomplete: "off", placeholder: "Client secret" });
+  const twBtn = h("button", { class: "btn sm primary", type: "button" }, "Save Twitch app");
+  twBtn.addEventListener("click", () => withBusy(twBtn, async () => {
+    try { await api("POST", "/api/connect/twitch", { client_id: cid.value.trim(), client_secret: csec.value.trim() }); cid.value = ""; csec.value = "";
+      toast("Twitch connected. Discover is ready.", "ok"); await refresh(); loadDiscover(true); }
+    catch (err) { toast(err.message, "err"); }
+  }));
+  const twItem = h("div", { class: "conn-item" },
+    h("div", { class: "head" }, h("b", { text: "Twitch (for Discover)" }), tw.connected ? tag("ok", "Connected") : tag("warn", "Not set up")),
+    h("details", { class: "more", open: !tw.connected }, h("summary", { text: tw.connected ? "Change app" : "Set up (2 minutes, free)" }),
+      h("div", {},
+        h("ol", {},
+          h("li", {}, "Open ", h("a", { href: "https://dev.twitch.tv/console/apps/create", target: "_blank", rel: "noopener noreferrer", text: "Twitch developer console ↗" }), " and sign in."),
+          h("li", { text: "Register an app: any name, OAuth redirect http://localhost, category “Application Integration”, client type Confidential." }),
+          h("li", { text: "Copy the Client ID, click New Secret and copy it, then paste both here." })),
+        cid, csec, h("div", { class: "inline-row" }, twBtn))));
+  // YouTube sign-in for *reading* streams (fixes "Sign in to confirm you're not a bot")
+  const yc = c.youtube_cookies || {};
+  const BNAME = { chrome: "Chrome", safari: "Safari", brave: "Brave", edge: "Edge", firefox: "Firefox", chromium: "Chromium", vivaldi: "Vivaldi", opera: "Opera" };
+  const ycTag = !yc.signed_in ? tag(yc.needed_by && yc.needed_by.length ? "err" : "warn", "Not signed in") :
+    yc.verified === false ? tag("err", "Expired: sign in again") :
+    (yc.needed_by && yc.needed_by.length) ? tag("err", "Rejected: sign in again") :
+    tag("ok", yc.verified ? "Signed in · checked" : "Signed in");
+  const openBtn = h("button", { class: "btn sm", type: "button" }, "1. Open YouTube sign-in ↗");
+  openBtn.addEventListener("click", () => withBusy(openBtn, async () => {
+    try { await api("POST", "/api/youtube-signin/open"); toast("Sign in to YouTube in the browser that opened, then come back and import.", "ok"); }
+    catch (err) { toast(err.message, "err"); }
+  }));
+  const importBtns = (yc.browsers || []).map(b => {
+    const btn = h("button", { class: "btn sm primary", type: "button" }, `Import from ${BNAME[b] || b}`);
+    btn.addEventListener("click", () => withBusy(btn, async () => {
+      try { const r = await api("POST", "/api/youtube-signin/import", { browser: b });
+        toast(r.verified === false ? "Saved, but YouTube says that browser isn't signed in. Sign in there and import again." :
+          `Signed in from ${BNAME[b] || b}. YouTube sources are re-checking now.`, r.verified === false ? "err" : "ok"); refresh(); }
+      catch (err) { toast(err.message, "err"); }
+    }));
+    return btn;
+  });
+  const paste = h("textarea", { class: "input mono", rows: 4, placeholder: "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t…" });
+  const pasteBtn = h("button", { class: "btn sm", type: "button" }, "Save cookies.txt");
+  pasteBtn.addEventListener("click", () => withBusy(pasteBtn, async () => {
+    try { const r = await api("POST", "/api/youtube-signin/paste", { text: paste.value }); paste.value = "";
+      toast(r.verified === false ? "Saved, but YouTube says those cookies aren't signed in." : "Signed in. YouTube sources are re-checking now.", r.verified === false ? "err" : "ok"); refresh(); }
+    catch (err) { toast(err.message, "err"); }
+  }));
+  const checkBtn = h("button", { class: "btn sm ghost", type: "button" }, "Check sign-in");
+  checkBtn.addEventListener("click", () => withBusy(checkBtn, async () => {
+    try { const r = await api("POST", "/api/youtube-signin/verify");
+      toast(r.verified ? "YouTube says you're signed in." : r.verified === false ? "YouTube says you're signed out. Sign in again." : "Couldn't reach YouTube to check.", r.verified ? "ok" : "err"); refresh(); }
+    catch (err) { toast(err.message, "err"); }
+  }));
+  const outBtn = armed(h("button", { class: "btn sm ghost", type: "button" }), "Sign out", "Confirm sign out", async () => {
+    try { await api("DELETE", "/api/youtube-signin"); toast("YouTube sign-in removed from Clipper.", "ok"); refresh(); }
+    catch (err) { toast(err.message, "err"); } });
+  const ycItem = h("div", { class: "conn-item", id: "yt-signin" },
+    h("div", { class: "head" }, h("b", { text: "YouTube sign-in (for recording)" }), ycTag),
+    yc.needed_by && yc.needed_by.length ? h("div", { class: "notice warn" },
+      `YouTube asked “confirm you're not a bot” for ${yc.needed_by.join(", ")}. Sign in below to keep recording.`) : null,
+    yc.signed_in ? h("div", { class: "note muted", style: "font-size:12px",
+      text: `Saved ${ago(yc.saved_at)}${yc.verified_at ? ` · checked ${ago(yc.verified_at)}` : ""}${yc.expires_at ? ` · cookies valid until ${when(yc.expires_at)}` : ""}` }) : null,
+    h("details", { class: "more", open: !yc.signed_in || yc.verified === false || !!(yc.needed_by && yc.needed_by.length) },
+      h("summary", { text: yc.signed_in ? "Sign in again" : "Sign in (1 minute)" }),
+      h("div", {},
+        h("ol", {},
+          h("li", { text: "Open YouTube sign-in and sign in with any Google account (a spare one is best; it's only used to watch, never to post)." }),
+          h("li", { text: "Click Import for that browser. macOS may ask for your login password to unlock the browser's cookies: choose Allow." })),
+        h("div", { class: "inline-row" }, openBtn, ...importBtns),
+        h("details", { class: "more" }, h("summary", { text: "Or paste a cookies.txt export" }),
+          h("div", {}, h("div", { class: "note muted", style: "font-size:12px", text: "Use a “Get cookies.txt LOCALLY” browser extension on youtube.com and paste the file here." }),
+            paste, h("div", { class: "inline-row" }, pasteBtn))))),
+    yc.signed_in ? h("div", { class: "inline-row" }, checkBtn, outBtn) : null);
+  box.replaceChildren(ycItem, ytItem, fbItem, twItem);
+}
+
+/* ---------- storage: where clips are saved ---------- */
+const stoUI = { open: false, choice: null };
+function renderStorage(d, force = false) {
+  const box = $("#sto-body"), st = d.storage;
+  if (!st) return;
+  const mv = st.move || {};
+  const sig = JSON.stringify([st.root, st.online, st.offline, st.to_move, st.waiting_for_drive, mv.status, mv.done, mv.skipped, (mv.errors || []).length, st.usage && Math.round(st.usage.free / 1e8), stoUI.open, stoUI.choice, st.drives.map(x => x.path + Math.round(x.free / 1e8))]);
+  if (!force) if (box.dataset.sig === sig || box.contains(document.activeElement) || box.querySelector(".armed")) return;
+  box.dataset.sig = sig;
+  const u = st.usage, used = u ? u.total - u.free : 0;
+  const state_ = st.offline ? h("span", { class: "tag warn", text: "Drive not connected" }) : st.online ? h("span", { class: "tag ok", text: st.is_default ? "This computer" : "Connected" }) : h("span", { class: "tag err", text: "Folder missing" });
+  const parts = [
+    h("div", { class: "kv" }, h("span", { text: "Saving to" }), state_),
+    h("div", { class: "mono path", text: st.root }),
+    u ? h("div", { class: `meter ${u.free < 5e9 ? "full" : ""}`, role: "meter", "aria-valuemin": "0", "aria-valuemax": String(u.total), "aria-valuenow": String(used), "aria-label": "Drive space used" }, h("i", { style: `width:${Math.min(100, used / u.total * 100)}%` })) : null,
+    u ? h("div", { class: "kv" }, h("span", { text: "Free space" }), h("b", { class: "mono", text: `${fmtBytes(u.free)} of ${fmtBytes(u.total)}` })) : null,
+    st.offline ? h("div", { class: "notice warn" }, `New clips are kept on this computer (${st.default}) and move to the drive automatically when you plug it back in. Nothing is lost or cancelled.`) : null,
+    st.waiting_for_drive ? h("div", { class: "note muted", style: "font-size:12px", text: `${st.waiting_for_drive} clip(s) are on a drive that isn't connected; they come back when it is.` }) : null,
+    st.to_move && mv.status !== "moving" ? h("div", { class: "note muted", style: "font-size:12px", text: `${st.to_move} clip(s) still elsewhere; they move here within a minute.` }) : null,
+  ];
+  if (mv.status === "moving") parts.push(h("div", { class: "grp" },
+    h("div", { class: "kv" }, h("span", { text: `Moving ${mv.done} of ${mv.total}` }), h("b", { class: "mono", text: fmtBytes(mv.bytes_done) })),
+    h("div", { class: "bar" }, h("i", { style: `width:${mv.total ? Math.round(mv.done / mv.total * 100) : 0}%` })),
+    h("div", { class: "note muted ellipsis", style: "font-size:12px", text: mv.current || "" })));
+  else if (mv.status === "done" && mv.finished && now() - mv.finished < 600) parts.push(h("div", { class: "notice info" },
+    `Moved ${mv.done} item(s)${mv.skipped ? `; ${mv.skipped} busy uploading, they follow shortly` : ""}${(mv.errors || []).length ? `; ${mv.errors.length} couldn't move` : ""}.`));
+  if ((mv.errors || []).length) parts.push(h("details", { class: "more" }, h("summary", { text: `${mv.errors.length} problem(s)` }), h("div", { class: "note", style: "font-size:12px" }, ...mv.errors.slice(0, 20).map(e => h("div", { text: e })))));
+  const openBtn = h("button", { class: "btn sm", type: "button", onclick: async () => { try { await api("POST", "/api/storage/open"); } catch (err) { toast(err.message, "err"); } } }, "Open in Finder");
+  const chBtn = h("button", { class: "btn sm", type: "button", disabled: mv.status === "moving" }, stoUI.open ? "Close" : "Change location");
+  chBtn.addEventListener("click", () => { stoUI.open = !stoUI.open; stoUI.choice = null; box.dataset.sig = ""; if (stoUI.open) api("GET", "/api/storage?refresh=true").catch(() => {}); renderStorage(state.data, true); });
+  parts.push(h("div", { class: "inline-row" }, openBtn, chBtn));
+  if (stoUI.open) {
+    const custom = h("input", { class: "input mono", placeholder: "or type a folder path, e.g. /Volumes/MyDrive/Clipper or D:\\Clipper", value: stoUI.choice && !st.drives.some(x => x.path === stoUI.choice) ? stoUI.choice : "" });
+    custom.addEventListener("input", () => { stoUI.choice = custom.value.trim() || null; });
+    const list = h("div", { class: "drives", role: "radiogroup", "aria-label": "Drives" }, ...st.drives.map(dr => {
+      const pct = dr.total ? Math.round((dr.total - dr.free) / dr.total * 100) : 0;
+      const b = h("button", { type: "button", class: "drive", role: "radio", "aria-checked": String(stoUI.choice === dr.path), disabled: !dr.writable,
+        onclick: () => { stoUI.choice = dr.path; box.dataset.sig = ""; renderStorage(state.data, true); } },
+        h("div", { class: "dn" }, h("b", { text: dr.name }), h("span", { class: "tag", text: dr.internal ? "Internal" : "External" })),
+        h("div", { class: "meter" }, h("i", { style: `width:${pct}%` })),
+        h("div", { class: "note muted", style: "font-size:12px", text: dr.writable ? `${fmtBytes(dr.free)} free · saves in ${dr.path.split("/").slice(-1)[0]}` : "Read-only on this computer (e.g. NTFS): can't save here" }));
+      return b; }));
+    const go = armed(h("button", { class: "btn primary sm", type: "button" }), "Move everything here", "Confirm move", async () => {
+      const target = stoUI.choice;
+      if (!target) { toast("Pick a drive or type a folder.", "err"); return; }
+      try { await api("POST", "/api/storage", { path: target }); stoUI.open = false; stoUI.choice = null; toast("Moving your clips. Keep the drive connected until it finishes.", "ok"); refresh(); }
+      catch (err) { toast(err.message, "err"); }
+    }, "warn");
+    parts.push(h("div", { class: "grp" },
+      h("div", { class: "lbl", text: "Save clips and source videos to" }), list, custom,
+      h("div", { class: "note muted", style: "font-size:12px", text: "Every clip folder and downloaded video moves there, one at a time (copied, checked, then removed from the old place), and new clips go there too. If the drive is unplugged later, nothing is lost: clips wait on this computer and catch up." }),
+      h("div", { class: "inline-row" }, go)));
+  }
+  box.replaceChildren(...parts.filter(Boolean));
+}
+
+/* ---------- reveal in Finder ---------- */
+async function revealClip(c) {
+  try { const r = await api("POST", `/api/clips/${c.id}/reveal`); toast(`Shown in Finder: ${r.path.split("/").pop()}`, "ok"); }
+  catch (err) { toast(err.message, "err"); }
+}
+async function copyPath(c) {
+  try { await navigator.clipboard.writeText(c.abs_path); toast("File path copied.", "ok"); }
+  catch { toast(c.abs_path, ""); }
+}
+
+/* ---------- logs (server-sent events) ---------- */
+const IMPORTANT = /CLIP EVENT|AUDIO SPIKE|highlight\(s\)|queued for|rendered only|upload complete|Reel published|posted job|is live|source .* (added|removed)|thumbnail not applied|deferred|PAUSED|failed|error/i;
+const logEl = $("#logs");
+let logBuf = [];
+function logLine(r) {
+  const t = new Date(r.ts * 1000).toLocaleTimeString([], { hour12: false });
+  return h("div", { class: `ln ${r.level} ${IMPORTANT.test(r.msg) ? "hi" : ""}` },
+    h("span", { class: "t", text: t }), h("span", { class: "lv", text: r.level === "WARNING" ? "WARN" : r.level }),
+    h("span", { class: "lg", text: r.logger, title: r.logger }), h("span", { class: "m", text: r.msg }));
+}
+function visible(r) {
+  const q = $("#log-q").value.trim().toLowerCase();
+  if ($("#log-important").checked && r.level === "INFO" && !IMPORTANT.test(r.msg)) return false;
+  return !q || r.msg.toLowerCase().includes(q) || r.logger.toLowerCase().includes(q);
+}
+function redrawLogs() {
+  const atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 40;
+  const rows = logBuf.filter(visible).slice(-400);
+  logEl.replaceChildren(...(rows.length ? rows.map(logLine) : [h("div", { class: "muted", text: "No matching activity yet." })]));
+  if (atBottom && !state.logPaused) logEl.scrollTop = logEl.scrollHeight;
+}
+function addLog(r) {
+  logBuf.push(r); if (logBuf.length > 2000) logBuf = logBuf.slice(-1500);
+  if (state.logPaused || !visible(r)) return;
+  const atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 40;
+  if (logEl.firstChild && logEl.firstChild.classList && logEl.firstChild.classList.contains("muted")) logEl.replaceChildren();
+  logEl.append(logLine(r));
+  while (logEl.childElementCount > 400) logEl.firstChild.remove();
+  if (atBottom) logEl.scrollTop = logEl.scrollHeight;
+}
+$("#log-important").addEventListener("change", redrawLogs);
+$("#log-q").addEventListener("input", redrawLogs);
+$("#log-pause").addEventListener("click", e => {
+  state.logPaused = !state.logPaused;
+  e.currentTarget.textContent = state.logPaused ? "Resume" : "Pause";
+  e.currentTarget.setAttribute("aria-pressed", String(state.logPaused));
+  if (!state.logPaused) redrawLogs();
+});
+async function startLogs() {
+  try { const backlog = await (await fetch("/api/logs")).json(); logBuf = backlog; redrawLogs(); } catch { /* status poll will show the outage */ }
+  const es = new EventSource("/api/logs/stream");
+  es.onmessage = e => { try { addLog(JSON.parse(e.data)); } catch { /* ignore */ } };
+}
+
+/* ---------- restart after an update ---------- */
+$("#update-btn").addEventListener("click", e => withBusy(e.currentTarget, async () => {
+  try { await api("POST", "/api/restart"); state.restarting = true; toast("Restarting Clipper with the update. This page reloads by itself in a few seconds.", "ok"); }
+  catch (err) { toast(err.message, "err"); }
+}));
+
+/* ---------- polling ---------- */
+let timer = null;
+async function refresh() {
+  clearTimeout(timer);
+  try {
+    const res = await fetch("/api/status", { cache: "no-store" });
+    if (!res.ok) throw new Error(String(res.status));
+    const d = await res.json();
+    if (d.build) {  // a restart loaded new code: load the matching page
+      state.pageBuild ??= d.build.id;
+      if (d.build.id !== state.pageBuild) { location.reload(); return; }
+      const ub = $("#update-btn"); ub.hidden = !d.build.update_available && !state.restarting;
+      if (state.restarting) { ub.disabled = true; ub.textContent = "Restarting…"; }
+    }
+    state.data = d; state.failures = 0;
+    $("#conn").classList.remove("show");
+    renderTop(d); renderSources(d); renderJobs(d); renderPublishing(d); renderClips(d); renderConnections(d); renderStorage(d);
+    if (drawer.open) renderDrawer();
+  } catch {
+    state.failures++;
+    $("#conn").classList.add("show");
+  }
+  timer = setTimeout(refresh, state.failures ? Math.min(15000, 2000 * state.failures) : (document.hidden ? 10000 : 2000));
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+
+/* first paint skeleton */
+$("#clips").replaceChildren(...Array.from({ length: 6 }, () => h("div", {}, h("div", { class: "skel", style: "aspect-ratio:9/16" }), h("div", { class: "skel", style: "height:12px;margin-top:8px;width:80%" }))));
+(async () => {
+  try { OPTIONS = await (await fetch("/api/options")).json(); } catch { /* defaults above */ }
+  await refresh();
+  mountFormEditors();
+  renderDiscover(); loadDiscover(false);
+  startLogs();
+})();
+</script>
+</body>
+</html>
